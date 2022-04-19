@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Campgrounds</title>
+  </head>
+  <body>
+    <h1>All Campgrounds</h1>
+    <a href="/campgrounds/new"><button>Add Campground</button></a>
+    <% let n = 1 %> <% for(let c of campgrounds) {%>
+    <div>
+      <h3><%= n++ %>. <%= c.title %></h3>
+      <p style="display: inline">Location: <%= c.location %></p>
+      <a href="/campgrounds/<%= c.id %> "><button>View Details</button></a>
+    </div>
+
+    <% } %>
+  </body>
+</html>
