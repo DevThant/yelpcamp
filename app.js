@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const methodOverride = require("method-override");
+const ejsMate = require("ejs-mate");
 const path = require("path");
 
 const Campground = require("./models/campground");
@@ -17,6 +18,9 @@ mongoose
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+
+app.engine("ejs", ejsMate);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -67,4 +71,4 @@ app.get("/campgrounds/:id", async (req, res) => {
   res.render("campgrounds/show", { campground });
 });
 
-app.listen(port, () => console.log(`App running on port ${port}`));
+app.listen(port, () => console.log(`YelpCAMP running on port ${port}`));

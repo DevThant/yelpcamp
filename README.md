@@ -2,7 +2,8 @@
 
 1. [Basic Setup](#basic-setup)
 2. [Basic CRUD](#basic-crud)
-3.
+3. [Basic templating and layouts with ejs and BOOTSTRAP 5](#basic-templating-and-layouts)
+4. [Basic image (Modify campground model)](#basic-image)
 
 ### **Basic Setup**
 
@@ -364,6 +365,256 @@ app.delete("/campgrounds/:id", async (req, res) => {
 });
 ```
 
-```html
+/campgrounds/show.ejs
 
+```html
+<form action="/campgrounds/<%= campground.id %>?_method=Delete" method="post">
+  <button type="submit">Delete Campground</button>
+</form>
 ```
+
+---
+
+### **Basic Templating and Layouts**
+
+##### [Start](#)
+
+<br>
+
+[#1 Create Layout folder and create boilerplate.ejs inside.](#create-layout-folder-and-create-boilerplateejs-inside)
+
+- Set up all campgrounds pages and index to layout(boilerplate.ejs).
+
+[#2 Create partials](#create-partials)
+
+- navbar partial
+
+---
+
+#### Create Layout folder and create boilerplate.ejs inside.
+
+##### [Start](#) / [Basic Templating and Layouts](#basic-templating-and-layouts)
+
+<br>
+
+#1 Install EJS Mate
+
+    npm i ejs-mate
+
+#2 Include/Require EJS Mate in the main app
+
+- Set the engine to ejsMate
+
+```javascript
+const ejsMate = require("ejs-mate");
+
+app.engine("ejs", ejsMate);
+```
+
+#3 Create new folder in views directory - name layouts
+
+```powershell
+\views> mkdir layouts
+```
+
+#4 Create boilerplate ejs file in layouts folder
+
+> This will be the basic boilerplate for every single page.
+
+```powershell
+\views\layouts> touch boilerplate.ejs
+```
+
+#5 Includes body(as reference to html body) in boilerplate.ejs
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boilerplate</title>
+  </head>
+  <body>
+    <h1>BEFORE</h1>
+
+    <!-- #5 -->
+    <%- body %>
+
+    <h1>AFTER</h1>
+  </body>
+</html>
+```
+
+#6 **Pass in the body of desire html** to our **boilerplate** page **using layout function**
+
+> For this example, I'm gonna use the index of the campgrounds from yelpcamp project - \views\campgrounds\index.ejs
+
+```html
+<!-- #6 -->
+<% layout('layouts/boilerplate') %>
+
+<h1>All Campgrounds</h1>
+<a href="/campgrounds/new"><button>Add Campground</button></a>
+<% let n = 1 %> <% for(let c of campgrounds) {%>
+<div>
+  <h3><%= n++ %>. <%= c.title %></h3>
+  <p style="display: inline">Location: <%= c.location %></p>
+  <a href="/campgrounds/<%= c.id %> "><button>View Details</button></a>
+</div>
+
+<% } %>
+```
+
+**NOTE:** **All the contents of html and ejs from index.ejs will be passed into the boilerplate.ejs file in the place of <%-body%>**
+
+---
+
+### Create Partials
+
+##### [Start](#) / [Basic Templating and Layouts](#basic-templating-and-layouts)
+
+<br>
+
+#1 Create partials folder
+
+```powershell
+\views> mkdir partials
+```
+
+#2 Create partails
+
+```powershell
+\views\partials> touch navbar.ejs footer.ejs
+```
+
+navbar.ejs
+
+```html
+<nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">YelpCamp</a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNavAltMarkup"
+      aria-controls="navbarNavAltMarkup"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+      <div class="navbar-nav">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/campgrounds">Campgrounds</a>
+        <a class="nav-link" href="/campgrounds/new">Add New Campground</a>
+      </div>
+    </div>
+  </div>
+</nav>
+```
+
+footer.ejs
+
+```html
+<footer class="footer bg-dark py-5 mt-auto">
+  <div class="container">
+    <span class="text-muted">&copy; YelpCamp 2022</span>
+  </div>
+</footer>
+```
+
+#3 Include partials in boilerplate.ejs
+
+```html
+<body>
+  <%- include("../partials/navbar") %>
+  <main class="container mt-5"><%- body %></main>
+  <%- include("../partials/footer") %>
+</body>
+```
+
+---
+
+### **Basic Image**
+
+##### [Start](#)
+
+<br>
+
+Add image to campground.
+
+1. [Modify the campground model for image](#modify-model-for-image)
+2. [Modify the seed file to add images, also price and description](#modify-seed-for-image-description-and-price)
+
+---
+
+#### **Modify model for image**
+
+<br>
+
+/models/campground.js
+
+```javascript
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
+
+const CampgroundSchema = new Schema({
+  title: String,
+  price: String,
+  description: String,
+  location: String,
+  // #
+  image: String,
+});
+
+module.exports = mongoose.model("Campground", CampgroundSchema);
+```
+
+---
+
+#### Modify seed for image, description and price
+
+<br>
+
+1.  Use unsplash api to get random image from collection everytime we use image url
+    > This does not store images to database, just a url that picks out random image from a collection from unsplash.
+2.  Add description to seed, just a lorem ipsum.
+3.  Add random price to seed.
+
+    > **Shorthand Used**. Since the **name of variable** to generate random price is the **same as** the "price" **name of the model**,
+
+         thus we use shorthand
+         price: price
+         to just
+         price
+
+/seeds/index.js
+
+```javascript
+const seedDB = async () => {
+  await Campground.deleteMany({});
+  for (let i = 0; i < 50; i++) {
+    const r1000 = Math.floor(Math.random() * 1000);
+    // #3
+    const price = Math.floor(Math.random() * 20) + 10;
+    const camp = new Campground({
+      location: `${cities[r1000].city}, ${cities[r1000].state}`,
+      title: `${sample(descriptors)} ${sample(places)}`,
+      // #1
+      image: "https://source.unsplash.com/collection/483251",
+      // #2
+      description:
+        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempora est nam sequi fugit reiciendis architecto error officia? Rerum reprehenderit maxime hic dignissimos officia, sint incidunt nemo autem velit? Nisi, eligendi.",
+      // #3
+      price,
+    });
+    await camp.save();
+  }
+};
+```
+
+---
