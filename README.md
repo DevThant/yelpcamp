@@ -4,6 +4,7 @@
 2. [Basic CRUD](#basic-crud)
 3. [Basic templating and layouts with ejs and BOOTSTRAP 5](#basic-templating-and-layouts)
 4. [Basic image (Modify campground model)](#basic-image)
+5. [Errors and validating errors](#errors-and-validating-data)
 
 ### **Basic Setup**
 
@@ -618,3 +619,23 @@ const seedDB = async () => {
 ```
 
 ---
+
+### **Errors And Validating Data**
+
+##### [Start](#)
+
+<br>
+
+1. Client-side Validation
+2. Basic Error Handler
+3. Defining Express Error Class
+4. More Errors
+5. Defining Error Template
+6. JOI Schema Validations
+7. JOI Validation Middleware
+
+### Cilent-side Validation
+
+##### [Start](#) / [Error And Validating Data](#errors-and-validating-data)
+
+<br>
