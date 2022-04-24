@@ -7,6 +7,9 @@ const path = require("path");
 // mongoose Models
 const Campground = require("./models/campground");
 
+// Joi Schemas
+const { campgroundSchema } = require("./JoiSchemas");
+
 // Utilities
 const ExpressError = require("./utils/ExpressError");
 const catchAsync = require("./utils/catchAsync");
@@ -31,6 +34,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(methodOverride("_method"));
 
+const validateCampground = (req, res, next) => {
+  const { error } = campgroundSchema.validate(req.body);
+  if (error) {
+    const msg = error.details.map((el) => el.message).join(",");
+    throw new ExpressError(msg, 400);
+  } else {
+    next();
+  }
+};
+
 app.get("/", (req, res) => {
   res.render("index");
 });
@@ -49,10 +62,11 @@ app.get("/campgrounds/new", (req, res) => {
 
 app.post(
   "/campgrounds",
-  catchAsync(async (req, res) => {
-    const c = new Campground(req.body.campground);
-    await c.save();
-    res.redirect(`/campgrounds/${c.id}`);
+  validateCampground,
+  catchAsync(async (req, res, next) => {
+    const campground = new Campground(req.body.campground);
+    await campground.save();
+    res.redirect(`/campgrounds/${campground.id}`);
   })
 );
 
@@ -67,6 +81,7 @@ app.get(
 
 app.put(
   "/campgrounds/:id",
+  validateCampground,
   catchAsync(async (req, res) => {
     const { id } = req.params;
     const campground = await Campground.findByIdAndUpdate(id, {
@@ -94,8 +109,14 @@ app.get(
   })
 );
 
+app.all("*", (req, res, next) => {
+  next(new ExpressError("404 Not Found", 404));
+});
+
 app.use((err, req, res, next) => {
-  res.send("Something Went Wrong");
+  const { statusCode = 500 } = err;
+  if (!err.message) err.message = "Something Went Wrong";
+  res.status(statusCode).render("error", { err });
 });
 
 app.listen(port, () => console.log(`YelpCAMP running on port ${port}`));

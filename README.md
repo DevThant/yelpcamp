@@ -4,7 +4,7 @@
 2. [Basic CRUD](#basic-crud)
 3. [Basic templating and layouts with ejs and BOOTSTRAP 5](#basic-templating-and-layouts)
 4. [Basic image (Modify campground model)](#basic-image)
-5. [Errors and validating errors](#errors-and-validating-data)
+5. [Errors and validating data](#errors-and-validating-data)
 
 ### **Basic Setup**
 
@@ -626,12 +626,16 @@ const seedDB = async () => {
 
 <br>
 
-1. Client-side Validation (Basic and no mongoose validations)
-2. Defining Express Error Class
-3. More Errors
-4. Defining Error Template
-5. JOI Schema Validations
-6. JOI Validation Middleware
+1. [Client-side Validation (Basic and no mongoose validations)](#cilent-side-validation)
+2. [Defining Express Error Class And Async Wrapper](#defining-express-error-class-and-async-wrapper)
+3. [Handling Errors](#handling-errors)
+   - [Error Handler](#error-handler)
+   - [404 for unknown routes](#404-for-unknown-routes)
+   - [400, invalid campground data (prevents creating campground directly from postman)](#400-invalid-campground-data)
+   - [400, invalid campground data (with JOI)](#joi-middleware)
+4. [Defining Error Template](#defining-error-template)
+5. [JOI Schema Validations](#joi-schema-validations)
+6. [JOI Validation Middleware](#joi-middleware)
 
 ---
 
@@ -642,6 +646,8 @@ const seedDB = async () => {
 <br>
 
 [We can just use custom bootstrap form validation to do client-side validation.](https://getbootstrap.com/docs/5.0/forms/validation/)
+
+THIS WONT WORK, if someone create a post request directly from something like postman.([handle this err](#))
 
 For custom Bootstrap form validation messages, you’ll need to add the novalidate boolean attribute to your `<form>`
 
@@ -673,7 +679,7 @@ For custom Bootstrap form validation messages, you’ll need to add the novalida
 
 ---
 
-### Defining Express Error Class
+### Defining Express Error Class And Async Wrapper
 
 ##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data)
 
@@ -731,3 +737,263 @@ app.post(
 ```
 
 ---
+
+### Handling Errors
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data)
+
+1. [Error Handler](#error-handler)
+2. [404 for unknown routes](#404-for-unknown-routes)
+3. [400, invalid campground data (creating campground directly from routes with postman)](#400-invalid-campground-data)
+
+---
+
+### **Error Handler**
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data) / [Handling Errors](#handling-errors)
+
+<br>
+
+1. Destructure the `err` to get message and statusCode ( if not set default)
+   app.js
+
+```javascript
+app.use((err, req, res, next) => {
+  const { message = "Something Went Wrong", statusCode = 500 } = err;
+  res.status(statusCode).send(message);
+});
+```
+
+---
+
+### **404 for unknown routes**
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data) / [Handling Errors](#handling-errors)
+
+<br>
+
+This should be at the very end of all routes!
+
+app.js
+
+```javascript
+app.all("*", (req, res, next) => {
+  next(new ExpressError("404 Not Found", 404));
+});
+```
+
+---
+
+### **400 invalid campground data**
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data) / [Handling Errors](#handling-errors)
+
+<br>
+
+app.js
+
+```javascript
+app.post(
+  "/campgrounds",
+  catchAsync(async (req, res, next) => {
+    if (!req.body.campground)
+      throw new ExpressError("Invalid Campground Data", 400);
+    const c = new Campground(req.body.campground);
+    await c.save();
+    res.redirect(`/campgrounds/${c.id}`);
+  })
+);
+```
+
+---
+
+### **Defining Error Template**
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data)
+
+<br>
+
+!! Since we be passing our error message and statusCode to error.ejs, we need to change the error handler.
+
+> remove message from destructuring to give err.message a default value if there is none. If we destrucutre the err.message, it is not gonna be inside the error.
+
+app.js
+
+```javascript
+app.use((err, req, res, next) => {
+  const { statusCode = 500 } = err;
+  if (!err.message) err.message = "Something Went Wrong";
+  res.status(statusCode).render("error", { err });
+});
+```
+
+1. Create error.ejs in the root views dir
+2. Include boilerplate in template
+3. Set err message
+
+error.ejs
+
+```html
+<% layout('layouts/boilerplate') %>
+
+<div class="row">
+  <div class="col-6 offset-3">
+    <div class="alert alert-danger" role="alert">
+      <h4 class="alert-heading"><%= err.message %></h4>
+      <p><%= err.stack %></p>
+    </div>
+  </div>
+</div>
+```
+
+---
+
+### **JOI Schema Validations**
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data)
+
+<br>
+
+Joi Doc - https://joi.dev/api/?v=17.6.0
+
+1.  Install JOI
+
+        npm i joi
+
+2.  Include JOI in our app
+
+```javascript
+const Joi = require("joi");
+```
+
+3. Using JOI on campgroud creating route
+   > Dont mix it up with mongoose, it has nothing to do with mongoose. Joi is a javascript module.
+4. Create a JOI schema that match to our mongo model of campground.
+5. Destructure the error from JOI validation result
+   > there will be no error object if we pass joi validation (schema.validate)
+6. If there is an error, get the error message from error object and passed it to ExpressError. [More Explanation E5](https://github.com/DevThant/My_notes/blob/master/Topics/Web_Development/Javascript/explanations.md#e5)
+
+app.js
+
+```javascript
+app.post(
+  "/campgrounds",
+  catchAsync(async (req, res, next) => {
+    const campgroundSchema = Joi.object({
+      campground: Joi.object({
+        title: Joi.string().required(),
+        price: Joi.number().min(0).required(),
+        location: Joi.string().required(),
+        image: Joi.string().required(),
+        description: Joi.string().required().min(10),
+      }).required(),
+    });
+    const { error } = campgroundSchema.validate(req.body);
+    if (error) {
+      const msg = error.details.map((el) => el.message).join(",");
+      throw new ExpressError(msg, 400);
+    }
+    const campground = new Campground(req.body.campground);
+    await campground.save();
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+```
+
+---
+
+### Joi Middleware
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data)
+
+<br>
+
+Create middleware function for our joi validation
+
+> Since validateCampground is not inside the route midlleware and become a seperate middleware, don't forget to call next() in case we have no error.
+
+app.js
+
+```javascript
+const validateCampground = (req, res, next) => {
+  const campgroundSchema = Joi.object({
+    campground: Joi.object({
+      title: Joi.string().required(),
+      price: Joi.number().min(0).required(),
+      location: Joi.string().required(),
+      image: Joi.string().required(),
+      description: Joi.string().required().min(10),
+    }).required(),
+  });
+  const { error } = campgroundSchema.validate(req.body);
+  if (error) {
+    const msg = error.details.map((el) => el.message).join(",");
+    throw new ExpressError(msg, 400);
+  } else {
+    // #
+    next();
+  }
+};
+```
+
+Seperate the campgroundSchema from the middleware
+
+- Create JoiSchemas file in root dir and put campgroundSchema in it.
+
+JoiSchemas.js
+
+```javascript
+const Joi = require("joi");
+
+module.exports.campgroundSchema = Joi.object({
+  campground: Joi.object({
+    title: Joi.string().required(),
+    price: Joi.number().min(0).required(),
+    location: Joi.string().required(),
+    image: Joi.string().required(),
+    description: Joi.string().required().min(10),
+  }).required(),
+});
+```
+
+Include the campgroundSchmea in main app
+
+- put the validateCampground middleware in our **Create(post) Campground Route** and **Update(put) Campground Route**
+
+app.js
+
+```javascript
+const { campgroundSchema } = require("./JoiSchemas");
+
+const validateCampground = (req, res, next) => {
+  const { error } = campgroundSchema.validate(req.body);
+  if (error) {
+    const msg = error.details.map((el) => el.message).join(",");
+    throw new ExpressError(msg, 400);
+  } else {
+    next();
+  }
+};
+
+app.post(
+  "/campgrounds",
+  validateCampground,
+  catchAsync(async (req, res, next) => {
+    const campground = new Campground(req.body.campground);
+    await campground.save();
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+
+app.put(
+  "/campgrounds/:id",
+  validateCampground,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findByIdAndUpdate(id, {
+      ...req.body.campground,
+    });
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+```
