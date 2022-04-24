@@ -626,16 +626,108 @@ const seedDB = async () => {
 
 <br>
 
-1. Client-side Validation
-2. Basic Error Handler
-3. Defining Express Error Class
-4. More Errors
-5. Defining Error Template
-6. JOI Schema Validations
-7. JOI Validation Middleware
+1. Client-side Validation (Basic and no mongoose validations)
+2. Defining Express Error Class
+3. More Errors
+4. Defining Error Template
+5. JOI Schema Validations
+6. JOI Validation Middleware
+
+---
 
 ### Cilent-side Validation
 
 ##### [Start](#) / [Error And Validating Data](#errors-and-validating-data)
 
 <br>
+
+[We can just use custom bootstrap form validation to do client-side validation.](https://getbootstrap.com/docs/5.0/forms/validation/)
+
+For custom Bootstrap form validation messages, you’ll need to add the novalidate boolean attribute to your `<form>`
+
+```javascript
+// Example starter JavaScript for disabling form submissions if there are invalid fields
+(function () {
+  "use strict";
+
+  // Fetch all the forms we want to apply custom Bootstrap validation styles to
+  var forms = document.querySelectorAll(".needs-validation");
+
+  // Loop over them and prevent submission
+  Array.prototype.slice.call(forms).forEach(function (form) {
+    form.addEventListener(
+      "submit",
+      function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        form.classList.add("was-validated");
+      },
+      false
+    );
+  });
+})();
+```
+
+---
+
+### Defining Express Error Class
+
+##### [Start](#) / [Error And Vlidating Data](#errors-and-validating-data)
+
+<br>
+
+1. Make utils folder in root dir
+2. Create ExpressError.js in utils
+
+ExpressError.js
+
+```javascript
+class ExpressError extends Error {
+  constructor(message, statusCode) {
+    super();
+    this.message = message;
+    this.status = status;
+  }
+}
+```
+
+3. Create catchAsync.js or asyncWrap or wrapAsync in utils
+4. Export async wrapper function that pass our error in function to the error handling function.
+   > [More explanation at E4](https://github.com/DevThant/My_notes/edit/master/Topics/Web_Development/Javascript/explanations.md#e4)
+
+catchAsync.js
+
+```javascript
+// #4
+module.exports = (fn) => {
+  return (req, res, next) => {
+    fn(req, res, next).catch(next);
+  };
+};
+```
+
+5. Require both ExpressError.js and catachAsync.js in our main app
+6. Wrap catchAsync Wrapper around routes' async functions
+   app.js
+
+```javascript
+// #5
+const ExpressError = require("./utils/ExpressError");
+const catchAsync = require("./utils/catchAsync");
+
+//#6
+app.post(
+  "/campgrounds",
+  catchAsync(async (req, res) => {
+    const c = new Campground(req.body.campground);
+    await c.save();
+    res.redirect(`/campgrounds/${c.id}`);
+  })
+);
+...
+```
+
+---

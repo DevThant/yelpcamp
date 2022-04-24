@@ -4,7 +4,12 @@ const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
 const path = require("path");
 
+// mongoose Models
 const Campground = require("./models/campground");
+
+// Utilities
+const ExpressError = require("./utils/ExpressError");
+const catchAsync = require("./utils/catchAsync");
 
 const app = express();
 const port = 3000;
@@ -30,45 +35,67 @@ app.get("/", (req, res) => {
   res.render("index");
 });
 
-app.get("/campgrounds", async (req, res) => {
-  const campgrounds = await Campground.find({});
-  res.render("campgrounds/index", { campgrounds });
-});
+app.get(
+  "/campgrounds",
+  catchAsync(async (req, res) => {
+    const campgrounds = await Campground.find({});
+    res.render("campgrounds/index", { campgrounds });
+  })
+);
 
 app.get("/campgrounds/new", (req, res) => {
   res.render("campgrounds/new");
 });
 
-app.post("/campgrounds", async (req, res) => {
-  const c = new Campground(req.body.campground);
-  await c.save();
-  res.redirect(`/campgrounds/${c.id}`);
-});
+app.post(
+  "/campgrounds",
+  catchAsync(async (req, res) => {
+    const c = new Campground(req.body.campground);
+    await c.save();
+    res.redirect(`/campgrounds/${c.id}`);
+  })
+);
 
-app.get("/campgrounds/:id/edit", async (req, res) => {
-  const { id } = req.params;
-  const campground = await Campground.findById(id);
-  res.render("campgrounds/edit", { campground });
-});
+app.get(
+  "/campgrounds/:id/edit",
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findById(id);
+    res.render("campgrounds/edit", { campground });
+  })
+);
 
-app.put("/campgrounds/:id", async (req, res) => {
-  const { id } = req.params;
-  const campground = await Campground.findByIdAndUpdate(id, {
-    ...req.body.campground,
-  });
-  res.redirect(`/campgrounds/${campground.id}`);
-});
+app.put(
+  "/campgrounds/:id",
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findByIdAndUpdate(id, {
+      ...req.body.campground,
+    });
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
 
-app.delete("/campgrounds/:id", async (req, res) => {
-  const { id } = req.params;
-  await Campground.findByIdAndDelete(id);
-  res.redirect("/campgrounds");
-});
+app.delete(
+  "/campgrounds/:id",
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    await Campground.findByIdAndDelete(id);
+    res.redirect("/campgrounds");
+  })
+);
 
-app.get("/campgrounds/:id", async (req, res) => {
-  const { id } = req.params;
-  const campground = await Campground.findById(id);
-  res.render("campgrounds/show", { campground });
+app.get(
+  "/campgrounds/:id",
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findById(id);
+    res.render("campgrounds/show", { campground });
+  })
+);
+
+app.use((err, req, res, next) => {
+  res.send("Something Went Wrong");
 });
 
 app.listen(port, () => console.log(`YelpCAMP running on port ${port}`));
