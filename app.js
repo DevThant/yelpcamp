@@ -6,9 +6,10 @@ const path = require("path");
 
 // mongoose Models
 const Campground = require("./models/campground");
+const Review = require("./models/review");
 
 // Joi Schemas
-const { campgroundSchema } = require("./JoiSchemas");
+const { campgroundSchema, reviewSchema } = require("./JoiSchemas");
 
 // Utilities
 const ExpressError = require("./utils/ExpressError");
@@ -44,6 +45,16 @@ const validateCampground = (req, res, next) => {
   }
 };
 
+const validateReview = (req, res, next) => {
+  const { error } = reviewSchema.validate(req.body);
+  if (error) {
+    const msg = error.details.map((el) => el.message).join(",");
+    throw new ExpressError(msg, 400);
+  } else {
+    next();
+  }
+};
+
 app.get("/", (req, res) => {
   res.render("index");
 });
@@ -65,6 +76,20 @@ app.post(
   validateCampground,
   catchAsync(async (req, res, next) => {
     const campground = new Campground(req.body.campground);
+    await campground.save();
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+
+// Create new review
+app.post(
+  "/campgrounds/:id/reviews",
+  validateReview,
+  catchAsync(async (req, res) => {
+    const campground = await Campground.findById(req.params.id);
+    const review = new Review(req.body.review);
+    campground.reviews.push(review);
+    await review.save();
     await campground.save();
     res.redirect(`/campgrounds/${campground.id}`);
   })

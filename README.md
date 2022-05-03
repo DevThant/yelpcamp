@@ -5,6 +5,8 @@
 3. [Basic templating and layouts with ejs and BOOTSTRAP 5](#basic-templating-and-layouts)
 4. [Basic image (Modify campground model)](#basic-image)
 5. [Errors and validating data](#errors-and-validating-data)
+6. [Review model](#review-model)
+7. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -997,3 +999,196 @@ app.put(
   })
 );
 ```
+
+### **Review Model**
+
+##### [Start](#)
+
+<br>
+
+1. [Adding review model](#adding-review-model-for-campground)
+2. [Validation for review model](#validation-for-review-model)
+3. [Display reviews in campground]
+
+---
+
+### **Adding review model for campground**
+
+##### [Start](#) / [Review Model](#add-review-model)
+
+<br>
+
+review.js
+
+```javascript
+const mongoose = require("mongoose");
+const { Schema } = mongoose;
+
+const reviewSchema = new Schema({
+  body: String,
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5,
+  },
+});
+
+const Review = mongoose.model("Review", reviewSchema);
+module.exports = Review;
+```
+
+Reference reviews in each campground
+
+campground.js
+
+```javascript
+const CampgroundSchema = new Schema({
+  title: String,
+  price: Number,
+  description: String,
+  location: String,
+  image: String,
+  // #
+  reviews: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Review",
+    },
+  ],
+});
+```
+
+Route to create new review (form is inside show page of campgrounds)
+
+app.js
+
+```javascript
+app.post(
+  "/campgrounds/:id/reviews",
+  catchAsync(async (req, res) => {
+    const campground = await Campground.findById(req.params.id);
+    const review = new Review(req.body.review);
+    campground.reviews.push(review);
+    await review.save();
+    await campground.save();
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+```
+
+### Validation for review model
+
+##### [Start](#) / [Review Model](#add-review-model)
+
+<br>
+
+For client-side : use bootstrap5 form validation.
+
+For Server-side : use **[Joi](#joi-schema-validations)**
+
+1. Add reviewSchema for joi
+
+JoiSchemas.js
+
+```javascript
+module.exports.reviewSchema = Joi.object({
+  review: Joi.object({
+    body: Joi.string().required(),
+    rating: Joi.number().min(1).max(5).required(),
+  }).required(),
+});
+```
+
+2. Include the reviewSchema and create validator function
+
+```javascript
+const { campgroundSchema, reviewSchema } = require("./JoiSchemas");
+
+const validateReview = (req, res, next) => {
+  const { error } = reviewSchema.validate(req.body);
+  if (error) {
+    const msg = error.details.map((el) => el.message).join(",");
+    throw new ExpressError(msg, 400);
+  } else {
+    next();
+  }
+};
+```
+
+3. Put the validateReview in review's creation route to validate the incoming body
+
+```javascript
+app.post(
+  "/campgrounds/:id/reviews",
+  validateReview,
+  catchAsync(async (req, res) => {codeblock}
+```
+
+---
+
+### Errors during development
+
+##### [Start](#)
+
+<br>
+
+1. [Cannot read property 'push' of undefined](#e1)
+
+#### E1
+
+##### [Start](#) / [More Errors](#errors-during-development)
+
+<br>
+
+    Cannot read property 'push' of undefined
+
+**Check:**
+
+- Models, especially the part where you put ref inside. Check if the property that ref to another model is array or just an object
+
+**Cause:**
+
+This tends to happen when you are pushing data into something that is not an array.
+
+app.js
+
+```javascript
+app.post("/...", async (req, res) => {
+  const model = await Model.findById(id);
+  const subDoc = await SubModel.findById(id);
+  model.subDocs.push(subDoc);
+});
+```
+
+The problem lies here - subDocs is an Object instead of Array.
+
+model.js
+
+```javascript
+const modelSchema = new Schema({
+  // #cause
+  subDocs: {
+    type: Schema.Types.ObjectId,
+    ref: "SubDoc",
+  },
+});
+```
+
+**Fix:**
+
+Change subDocs from object to array
+
+```javascript
+const modelSchema = new Schema({
+  // #fix
+  subDocs: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "SubDoc",
+    },
+  ],
+});
+```
+
+---
