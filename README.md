@@ -1006,15 +1006,16 @@ app.put(
 
 <br>
 
-1. [Adding review model](#adding-review-model-for-campground)
-2. [Validation for review model](#validation-for-review-model)
-3. [Display reviews in campground]
+1. [Adding review model](#1-adding-review-model-for-campground)
+2. [Validation for review model](#2-validation-for-review-model)
+3. [Display reviews and delete](#3-display-and-delete)
+4. [Delete every reviews associated with campground when campground is deleted](#delete-every-reviews)
 
 ---
 
-### **Adding review model for campground**
+### **1. Adding review model for campground**
 
-##### [Start](#) / [Review Model](#add-review-model)
+##### [Start](#) / [Review Model](#review-model)
 
 <br>
 
@@ -1077,9 +1078,9 @@ app.post(
 );
 ```
 
-### Validation for review model
+### **2. Validation for review model**
 
-##### [Start](#) / [Review Model](#add-review-model)
+##### [Start](#) / [Review Model](#review-model)
 
 <br>
 
@@ -1124,6 +1125,88 @@ app.post(
   validateReview,
   catchAsync(async (req, res) => {codeblock}
 ```
+
+---
+
+### **3. Display and Delete**
+
+##### [Start](#) / [Review Model](#review-model)
+
+<br>
+
+We will show all the reviews in the same show page for the campground, and to do that we just need to populate the reviews.
+
+app.js
+
+```javascript
+app.get(
+  "/campgrounds/:id",
+  catchAsync(async (req, res) => {
+    const campground = await Campground.findById(req.params.id).populate(
+      "reviews"
+    );
+    res.render("campgrounds/show", { campground });
+  })
+);
+```
+
+For deleting reviews
+
+1. We dont necessarily need to find and update campground (optional)
+2. This is enough for deleting the review.
+3. This can delete reviews BUT **[We still need campground delete middleware to delete all reviews once a campground is deleted](#delete-all-reviews).**
+
+app.js
+
+```javascript
+app.delete(
+  "/campgrounds/:id/reviews/:reviewId",
+  catchAsync(async (req, res) => {
+    const { id, reviewId } = req.params;
+    // #1
+    await Campground.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
+    // #2
+    await Review.findByIdAndDelete(reviewId);
+    res.redirect(`/campgrounds/${id}`);
+  })
+);
+```
+
+---
+
+### Delete All Reviews
+
+##### [Start](#) / [Review Model](#review-model)
+
+<br>
+
+We will use mongoose midlleware to delete all the reviews associated with campground, once the campground is deleted.
+
+> **Note:** we are using `Campground.findByIdAndDelete(id)` to delete a campground and this function triggers the following mongoose middleware `findOneAndDelete()`. Refers to [doc](https://mongoosejs.com/docs/api/model.html#model_Model.findByIdAndDelete) ( look under Returns: )
+
+In campground model
+
+1. Dont forget to import the review model inside the campground model
+2. Use findOneAndDelete() middleware
+   > This middleware returns the found document, in this case the campground we are deleting.
+3. If there is a campground, delete all the reviews inside the found campground.
+
+campground.js
+
+```javascript
+// #1
+const Review = require("./review");
+...
+// #2
+CampgroundSchema.post("findOneAndDelete", async function(doc){
+  // #3
+  if(doc){
+    await Review.deleteMany({_id: {$in: doc.reviews}})
+  }
+})
+```
+
+> Note: THIS won't work if we are deleting multiple campgrounds or using other function to delete campground instead of `findByIdAndDelete()`
 
 ---
 
