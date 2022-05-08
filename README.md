@@ -6,7 +6,8 @@
 4. [Basic image (Modify campground model)](#basic-image)
 5. [Errors and validating data](#errors-and-validating-data)
 6. [Review model](#review-model)
-7. [Errors during development](#errors-during-development)
+7. [Refactor Routes](#refactor-routes)
+8. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -1174,7 +1175,7 @@ app.delete(
 
 ---
 
-### Delete All Reviews
+### **Delete All Reviews**
 
 ##### [Start](#) / [Review Model](#review-model)
 
@@ -1210,7 +1211,50 @@ CampgroundSchema.post("findOneAndDelete", async function(doc){
 
 ---
 
-### Errors during development
+### Refactor Routes
+
+##### [Start](#)
+
+<br>
+
+Seperate the campgrounds and reviews routes from the main app to Route files.
+
+1. Create route folder in root dir.
+2. Create route file for campground and reviews
+3. Set the express router in each file and export the routers
+4. Move the routes and necessary middlewares from main app to respective route file.
+5. Set mergeParams to true in reviews express.Router.
+
+app.js
+
+```javascript
+// Routes
+const campgroundRoutes = require("./routes/campgrounds");
+const reviewRoutes = require("./routes/reviews");
+
+// --------------------Routes--------------------
+
+// Campgrounds
+app.use("/campgrounds", campgroundRoutes);
+
+// Reviews
+app.use("/campgrounds/:id/reviews", reviewRoutes);
+
+// Landing
+app.get("/", (req, res) => {
+  res.render("index");
+});
+
+// Error
+app.all("*", (req, res, next) => {
+  next(new ExpressError("404 Not Found", 404));
+});
+// --------------------Routes--------------------
+```
+
+---
+
+### **Errors during development**
 
 ##### [Start](#)
 
