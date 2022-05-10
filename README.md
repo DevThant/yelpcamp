@@ -7,7 +7,8 @@
 5. [Errors and validating data](#errors-and-validating-data)
 6. [Review model](#review-model)
 7. [Refactor Routes](#refactor-routes)
-8. [Errors during development](#errors-during-development)
+8. [Serving Static Assets](#serving-static-assets)
+9. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -1250,6 +1251,56 @@ app.all("*", (req, res, next) => {
   next(new ExpressError("404 Not Found", 404));
 });
 // --------------------Routes--------------------
+```
+
+---
+
+### Serving Static Assets
+
+##### [Start](#)
+
+<br>
+
+- Create public folder in root dir
+- Then tell express to use our public folder as static assets folder
+
+```javascript
+app.use(express.static(path.join(__dirname, "public")));
+```
+
+- Now we can link our static assests - files, images, sounds, ...etc in our app.
+
+Remove form validation script from layout/boilerplate.ejs and put it in the validateForm.js which is inside public folder. Then use the file in place of our script by sourcing it.
+
+layouts/boilerplate.ejs
+
+```html
+<script src="/javascripts/validateForm.js"></script>
+```
+
+public/javascripts/validateForm.js
+
+```javascript
+(function () {
+  "use strict";
+
+  const forms = document.querySelectorAll(".validated-form");
+
+  Array.prototype.slice.call(forms).forEach(function (form) {
+    form.addEventListener(
+      "submit",
+      function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        form.classList.add("was-validated");
+      },
+      false
+    );
+  });
+})();
 ```
 
 ---
