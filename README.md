@@ -1261,6 +1261,7 @@ app.all("*", (req, res, next) => {
 <br>
 
 1. [Cannot read property 'push' of undefined](#e1)
+2. [[ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined](#e2)
 
 #### E1
 
@@ -1269,10 +1270,6 @@ app.all("*", (req, res, next) => {
 <br>
 
     Cannot read property 'push' of undefined
-
-**Check:**
-
-- Models, especially the part where you put ref inside. Check if the property that ref to another model is array or just an object
 
 **Cause:**
 
@@ -1302,11 +1299,23 @@ const modelSchema = new Schema({
 });
 ```
 
+**Check:**
+
+This usually happens in Models, especially the part where you put ref inside. Check if the property that ref to another model is array or just an object
+
 **Fix:**
 
 Change subDocs from object to array
 
 ```javascript
+const modelSchema = new Schema({
+  // #cause
+  subDocs: {
+    type: Schema.Types.ObjectId,
+    ref: "SubDoc",
+  },
+});
+
 const modelSchema = new Schema({
   // #fix
   subDocs: [
@@ -1316,6 +1325,56 @@ const modelSchema = new Schema({
     },
   ],
 });
+```
+
+---
+
+#### **E2**
+
+##### [Start](#) / [More Errors](#errors-during-development)
+
+<br>
+
+Happened in Greenish_Engineering_services
+
+    > TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+
+    Happened when I try to access the routes that contains cod variable
+
+**Cause:**
+
+This happens cus of naming conflict, I was trying to pass the **variable** **`setting`** into the routes.
+
+settings is conflicted with one of the ejsMate option.
+
+utils/cod.js
+
+```javascript
+const category = ["hvac", "solar", "grounding", "electircal", "plumbing"];
+const types = ["installation", "cleaning", "maintenance", "survey"];
+const plans = ["One-Time", "Monthly", "3 Months", "6 Months", "Yearly"];
+const methods = ["Regular", "Premium"];
+const models = ["Inverter", "Non-Inverter"];
+const hps = [1, 1.5, 2, 2.5, 3];
+const settings = ["default", "custom"];
+
+module.exports.cod = { category, types, plans, methods, models, hps, settings };
+```
+
+**Fix:**
+
+- Rename or remove the settings
+
+```javascript
+const category = ["hvac", "solar", "grounding", "electircal", "plumbing"];
+const types = ["installation", "cleaning", "maintenance", "survey"];
+const plans = ["One-Time", "Monthly", "3 Months", "6 Months", "Yearly"];
+const methods = ["Regular", "Premium"];
+const models = ["Inverter", "Non-Inverter"];
+const hps = [1, 1.5, 2, 2.5, 3];
+const opsets = ["default", "custom"];
+
+module.exports.cod = { category, types, plans, methods, models, hps, opsets };
 ```
 
 ---
