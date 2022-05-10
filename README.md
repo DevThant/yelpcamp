@@ -1261,7 +1261,8 @@ app.all("*", (req, res, next) => {
 <br>
 
 1. [Cannot read property 'push' of undefined](#e1)
-2. [[ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined](#e2)
+2. [TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined](#e2)
+3. [TypeError [ERR_INVALID_ARG_VALUE]: The argument 'id' must be a non-empty string. Received ''](#e3)
 
 #### E1
 
@@ -1375,6 +1376,52 @@ const hps = [1, 1.5, 2, 2.5, 3];
 const opsets = ["default", "custom"];
 
 module.exports.cod = { category, types, plans, methods, models, hps, opsets };
+```
+
+---
+
+#### **E3**
+
+##### [Start](#) / [More Errors](#errors-during-development)
+
+<br>
+
+Happened when running app with nodemon
+
+    > TypeError [ERR_INVALID_ARG_VALUE]: The argument 'id' must be a non-empty string. Received ''
+        at new NodeError (node:internal/errors:371:5)
+        at Module.require (node:internal/modules/cjs/loader:1000:11)
+        at require (node:internal/modules/cjs/helpers:102:18)
+        at Object.<anonymous> (C:\Users\pyaes\Desktop\pyaesone\Apps\Greenish_Services\JoiSchemas.js:1:13)
+        at Module._compile (node:internal/modules/cjs/loader:1103:14)
+        at Object.Module._extensions..js (node:internal/modules/cjs/loader:1157:10)
+        at Module.load (node:internal/modules/cjs/loader:981:32)
+        at Function.Module._load (node:internal/modules/cjs/loader:822:12)
+        at Module.require (node:internal/modules/cjs/loader:1005:19)
+        at require (node:internal/modules/cjs/helpers:102:18) {
+        code: 'ERR_INVALID_ARG_VALUE'
+        }
+
+**Cause:**
+
+I got this error because I had overlooked that I was not properly importing the module:
+
+```javascript
+//       #not importing any module
+const Joi = require("");
+```
+
+Other possible causes :
+
+- run it for debugging in "vs code"
+
+**Fix:**
+
+Make sure that every modules has been imported correctly.
+
+```javascript
+//                  #fix
+const Joi = require("joi");
 ```
 
 ---
