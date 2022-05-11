@@ -8,7 +8,10 @@
 6. [Review model](#review-model)
 7. [Refactor Routes](#refactor-routes)
 8. [Serving Static Assets](#serving-static-assets)
-9. [Errors during development](#errors-during-development)
+9. [Session](#session)
+   - [Setting up Session](#setting-up-session)
+   - [Setting up Flash](#setting-up-flash)
+10. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -1301,6 +1304,130 @@ public/javascripts/validateForm.js
     );
   });
 })();
+```
+
+---
+
+### **Session**
+
+##### [Start](#)
+
+<br>
+
+We need session :
+
+- [To use flash messages, when user do CRUD on campgrounds and reviews, login and logout, gretting, ...etc.](#setting-up-flash)
+- For users authentications.
+
+---
+
+### **Setting Up Session**
+
+##### [Start](#) / [Session](#session)
+
+<br>
+
+To setup session
+
+1. npm i express-session
+2. Import session module
+3. Create config for session and use session
+4. Set up simple secret and basic requirements by express-session
+5. Add options to cookies that we send back
+   - set expire date for 1 week(Since **`Date.now()`** is in miliseconds, we have to convert our 1 week time into miliseconds)
+   - set httpOnly (**true by default**) : to mitigate risk by accessing cookies through clinet side scripts. [read more](https://owasp.org/www-community/HttpOnly)
+
+app.js
+
+```javascript
+// #2
+const session = require("express-session");
+
+// #3
+const sessionConfig = {
+  // #4
+  secret: "donotstoresecretlikethis",
+  resave: false,
+  saveUninitialized: true,
+  // #5
+  cookie: {
+    //  1000 miliseconds in a second, 60 s in min, 60 min in hr, 24 hr/day to 7 days
+    expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    httpOnly: true,
+  },
+};
+
+// #3
+app.use(session(sessionConfig));
+```
+
+---
+
+### **Setting Up Flash**
+
+##### [Start](#) / [Session](#session)
+
+<br>
+
+To setup flash messages:
+
+1. npm i connect-flash
+2. Import and use flash in app
+3. To use flash, we just have to pass in a key and a value into `req.flash()`
+4. Create middleware to store flash messages and pass them into every routes
+   > This middleware has to come before any routes
+5. Add flash message to boilerplate template.
+
+app.js
+
+```javascript
+// #1
+const flash = require("connect-flash");
+
+// #2
+app.use(flash());
+
+// #3 req.flash("key" , "value")
+
+// #4
+app.use((req, res, next) => {
+  res.locals.success = req.flash("success");
+  next();
+});
+
+// Routes
+```
+
+<!-- prettier-ignore-start -->
+layouts/boilerplate.ejs
+
+```html
+<main class="container my-5">
+  <%= success %> 
+  <%- body %>
+</main>
+```
+<!-- prettier-ignore-end -->
+
+Camground CRUD flash messages:
+
+1. Create new campground
+
+/routes/campgrounds.js
+
+```javascript
+router.post(
+  "/",
+  validateCampground,
+  catchAsync(async (req, res, next) => {
+    const campground = new Campground(req.body.campground);
+    await campground.save();
+    // #1 flash message
+    req.flash("success", "New Campground has been added!");
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
 ```
 
 ---
