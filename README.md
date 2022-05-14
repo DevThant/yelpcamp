@@ -1370,6 +1370,14 @@ app.use(session(sessionConfig));
 
 <br>
 
+- [Flash Basic Setup](#flash-basic-setup)
+
+- [Setup Flash with partials and bootstrap](#)
+
+---
+
+#### **Flash Basic setup**
+
 To setup flash messages:
 
 1. npm i connect-flash
@@ -1426,6 +1434,98 @@ router.post(
     // #1 flash message
     req.flash("success", "New Campground has been added!");
     res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+```
+
+---
+
+#### **Setup Flash with Partials and Bootstraps**
+
+1. Create flash.ejs in partials
+2. Add flash message with bootstrap alert
+3. Inlcude the flash partials in the boilerplate
+4. Since the flash is on all pages we have to make sure the bootsrap alert is not displaying the flash message box even if there is no message.
+   > We have to check the length of success and error to check if there is any messages in array.
+
+flash.ejs
+
+<!-- prettier-ignore -->
+```html
+
+<!-- Success -->
+<!-- #4 -->
+<% if(success.length){ %>
+<!-- #2 -->
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <%= success %>
+  <button
+    type="button"
+    class="btn-close"
+    data-bs-dismiss="alert"
+    aria-label="Close"
+  ></button>
+</div>
+<% } %>
+
+<!-- Error  -->
+<!-- #4 -->
+<% if(error.length){ %>
+<!-- #2 -->
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  <%= error %>
+  <button
+    type="button"
+    class="btn-close"
+    data-bs-dismiss="alert"
+    aria-label="Close"
+  ></button>
+</div>
+<% } %>
+
+```
+
+boilerplate.ejs
+
+<!-- prettier-ignore -->
+```html
+
+<main class="container my-5">
+  <!-- #3 -->
+  <%- include("../partials/flash") %>
+  <%- body %>
+</main>
+```
+
+Then add flash messages to necessary routes.
+
+routes/campgrounds.js
+
+```javascript
+router.post(
+  "/",
+  validateCampground,
+  catchAsync(async (req, res, next) => {
+    const campground = new Campground(req.body.campground);
+    await campground.save();
+    // Flash Message
+    req.flash("success", "New Campground has been added!");
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+
+router.get(
+  "/:id",
+  catchAsync(async (req, res) => {
+    const campground = await Campground.findById(req.params.id).populate(
+      "reviews"
+    );
+    if (!campground) {
+      // Flash Message
+      req.flash("error", "Campground does not exist!");
+      return res.redirect("/campgrounds");
+    }
+    res.render("campgrounds/show", { campground });
   })
 );
 ```
