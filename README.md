@@ -11,7 +11,10 @@
 9. [Session](#session)
    - [Setting up Session](#setting-up-session)
    - [Setting up Flash](#setting-up-flash)
-10. [Errors during development](#errors-during-development)
+10. [Authentication](#authentication)
+    - [User model with Passport Local Mongoose](#passport-local-mongoose)
+    - [](#)
+11. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -1532,6 +1535,50 @@ router.get(
 
 ---
 
+### Authentication
+
+##### [Start](#)
+
+<br>
+
+1. [User model with passport-local-mongoose](#passport-local-mongoose)
+
+### passport-local-mongoose
+
+##### [Start](#) / [Authentication](#authentication)
+
+<br>
+
+> npm i passport passport-local passport-local-mongoose
+
+1. Create User Model
+2. We don't need to specify or declare the username and password in our schema, passport-local-mongoose will take care of it. **[Read doc](https://github.com/saintedlama/passport-local-mongoose#readme)**
+   > Passport-Local Mongoose will add a username, hash and salt field to store the username, the hashed password and the salt value.
+
+models/user.js
+
+```javascript
+const mongoose = require("mongoose");
+const passportLocalMongoose = require("");
+const { Schema } = mongoose;
+
+const userSchema = new Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+});
+
+userSchema.plugin(passportLocalMongoose);
+
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;
+```
+
+---
+
 ### **Errors during development**
 
 ##### [Start](#)
@@ -1664,7 +1711,7 @@ module.exports.cod = { category, types, plans, methods, models, hps, opsets };
 
 <br>
 
-Happened when running app with nodemon
+Happened when running app
 
     > TypeError [ERR_INVALID_ARG_VALUE]: The argument 'id' must be a non-empty string. Received ''
         at new NodeError (node:internal/errors:371:5)
@@ -1682,7 +1729,7 @@ Happened when running app with nodemon
 
 **Cause:**
 
-I got this error because I had overlooked that I was not properly importing the module:
+I got this error because I was not properly importing the module:
 
 ```javascript
 //       #not importing any module
