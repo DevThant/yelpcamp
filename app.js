@@ -5,6 +5,8 @@ const ejsMate = require("ejs-mate");
 const path = require("path");
 const session = require("express-session");
 const flash = require("connect-flash");
+const passport = require("passport");
+const localStrategy = require("passport-local");
 
 // Utilities
 const ExpressError = require("./utils/ExpressError");
@@ -22,6 +24,11 @@ mongoose
     console.log("Mongoose Running");
   })
   .catch((error) => console.log(`Connection Error : ${error}`));
+
+app.use(session(sessionConfig));
+app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -43,9 +50,6 @@ const sessionConfig = {
     httpOnly: true,
   },
 };
-
-app.use(session(sessionConfig));
-app.use(flash());
 
 // --------------------Routes--------------------
 // flash middleware

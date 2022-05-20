@@ -1577,6 +1577,23 @@ const User = mongoose.model("User", userSchema);
 module.exports = User;
 ```
 
+3. import passport and passport local to main app.
+4. Initialize the passport and enable the passport session support
+   > Passport session support is entirely optional, but recommended for most apps. **`Be sure to use session()` before `passport.session()`**.
+
+app.js
+
+```javascript
+const passport = require("passport");
+const localStrategy = require("passport-local");
+
+// #4
+app.use(session(sessionConfig));
+app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session());
+```
+
 ---
 
 ### **Errors during development**
