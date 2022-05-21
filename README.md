@@ -1570,6 +1570,7 @@ const userSchema = new Schema({
   },
 });
 
+// #2
 userSchema.plugin(passportLocalMongoose);
 
 const User = mongoose.model("User", userSchema);
@@ -1577,21 +1578,47 @@ const User = mongoose.model("User", userSchema);
 module.exports = User;
 ```
 
-3. import passport and passport local to main app.
+3. import passport, passport-local and user model to main app.
 4. Initialize the passport and enable the passport session support
    > Passport session support is entirely optional, but recommended for most apps. **`Be sure to use session()` before `passport.session()`**.
+5. Tell passport to use localStrategy, and for that localStrategy the authentication method will be located on our user model.
+   > We didnt really defined any methods called `authenticate()` in our user file but it is coming from the **static methods** of **passport-local-mongoose** module. #2 is important for this to work. Read doc.
+6. Use passport serialize to store user to session and deserialize to remove user from the session. (Static methods)
 
 app.js
 
 ```javascript
 const passport = require("passport");
 const localStrategy = require("passport-local");
+const User = require("./models/user.js");
 
-// #4
 app.use(session(sessionConfig));
 app.use(flash());
+// #4
 app.use(passport.initialize());
 app.use(passport.session());
+
+// #5
+passport.use(new localStrategy(User.authenticate()));
+// #6
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+```
+
+7. This is just a demo for user registration using passport
+
+   - We don't need to put the password directly into User model (leaves password out)
+   - Use `register()` method to save new User to database > register(user, password, cb) Convenience method to register a new user instance with a given password. Checks if username is unique. (Static methods)
+     app.js
+
+```javascript
+app.get("/demoRegister", async (req, res) => {
+  // #7.1
+  const user = new User({ email: "demo@gmail.com", username: "demo" });
+  // #7.2
+  const newUser = await User.register(user, "12345password");
+  res.send(newUser);
+});
 ```
 
 ---

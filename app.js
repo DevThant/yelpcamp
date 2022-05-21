@@ -8,12 +8,16 @@ const flash = require("connect-flash");
 const passport = require("passport");
 const localStrategy = require("passport-local");
 
+//Models
+const User = require("./models/user");
+
 // Utilities
 const ExpressError = require("./utils/ExpressError");
 
 // Routes
 const campgroundRoutes = require("./routes/campgrounds");
 const reviewRoutes = require("./routes/reviews");
+const userRoutes = require("./routes/user");
 
 const app = express();
 const port = 3000;
@@ -24,21 +28,6 @@ mongoose
     console.log("Mongoose Running");
   })
   .catch((error) => console.log(`Connection Error : ${error}`));
-
-app.use(session(sessionConfig));
-app.use(flash());
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
-app.engine("ejs", ejsMate);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
-app.use(methodOverride("_method"));
 
 const sessionConfig = {
   secret: "donotstoresecretlikethis",
@@ -51,6 +40,26 @@ const sessionConfig = {
   },
 };
 
+app.use(session(sessionConfig));
+app.use(flash());
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.use(new localStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+app.engine("ejs", ejsMate);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
+app.use(methodOverride("_method"));
+
 // --------------------Routes--------------------
 // flash middleware
 app.use((req, res, next) => {
@@ -59,10 +68,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Campgrounds
+app.use("/", userRoutes);
 app.use("/campgrounds", campgroundRoutes);
-
-// Reviews
 app.use("/campgrounds/:id/reviews", reviewRoutes);
 
 // Landing
