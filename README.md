@@ -1535,17 +1535,22 @@ router.get(
 
 ---
 
-### Authentication
+### **Authentication**
 
 ##### [Start](#)
 
 <br>
 
 1. [User model with passport-local-mongoose](#passport-local-mongoose)
-2. [Register form and user registration with passport](#register)
-3. [Login form and login with passport](#login)
+2. [**Register** (form and user registration with passport)](#register)
+3. [**Login** (form and login with passport)](#login)
 
-### passport-local-mongoose
+   - [**isLoggedIn** **Middleware**(Prevents certain routes to user without account)](#required-login-middleware)
+   - [Automatically Login the user upon registration](#auto-login)
+
+4. **[Logout](#logout)**
+
+### **passport-local-mongoose**
 
 ##### [Start](#) / [Authentication](#authentication)
 
@@ -1625,7 +1630,7 @@ app.get("/demoRegister", async (req, res) => {
 
 ---
 
-### Register
+### **Register**
 
 ##### [Start](#) / [Authentication](#authentication)
 
@@ -1668,7 +1673,7 @@ router.post(
 );
 ```
 
-### Login
+### **Login**
 
 ##### [Start](#) / [Authentication](#authentication)
 
@@ -1708,6 +1713,155 @@ router.post(
     res.redirect("/campgrounds");
   }
 );
+```
+
+### Required Login Middleware
+
+##### [Start](#) / [Authentication](#authentication)
+
+<br>
+
+isAunthenticated method is automatically added to req by the passport. Use `req.isAuthenticated()` to check whether the user is logged in or not.
+
+1. Don't forget these two lines in main app (rest won't work if these two aren't present.)
+2. passport.authenticate() middleware invokes essentials methods to request like `req.isAuthenticated()`, `req.logout()`, `req.login()`, ...etc.
+
+   ```javascript
+   app.use(passport.initialize());
+   app.use(passport.session());
+   ```
+
+3. Prevents users from accessing the new route (to create new campground) by using isAuthenticated().
+
+routes/campground.js
+
+```javascript
+router.get("/new", (req, res) => {
+  // #2
+  if (!req.isAuthenticated()) {
+    req.flash("error", "You must be signed in!");
+    return res.redirect("/login");
+  }
+  res.render("campgrounds/new");
+});
+```
+
+3. Since we'll be needing to use this method on other routes and frequently, we move #2 into seperate function to use it as middleware.
+
+utils/middlewares.js
+
+```javascript
+module.exports.isLoggedIn = (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "You must be signed in!");
+    return res.redirect("/login");
+  }
+  next();
+};
+```
+
+4. Import the middleware into routes/campgrounds.js
+5. Use the middleware in routes that needs preventions.
+
+```javascript
+// #4
+const { isLoggedIn } = require("../utils/middleware");
+
+// #5
+router.get("/new", isLoggedIn, (req, res) => {
+  res.render("campgrounds/new");
+});
+//* Routes that need protection, new (get + post), edit (get + put), delete
+```
+
+---
+
+### Auto Login
+
+##### [Start](#) / [Authentication](#authentication)
+
+<br>
+
+To login the user upon completing registration, we just have to use login()
+
+1. Add req.login() after successful registration
+2. We have to include the error ( which is highly unlikely to trigger ) and pass it into our error handler with next(err).
+
+> req.login() does not support async
+
+routes/user.js
+
+```javascript
+router.post(
+  "/register",
+  catchAsync(async (req, res) => {
+    try {
+      const { username, email, password } = req.body;
+      const user = new User({ username, email });
+      const newUser = await User.register(user, password);
+      // #1
+      req.login(newUser, (err) => {
+        // #2
+        if (err) return next(err);
+        req.flash("success", "Welcome to the YelpCamp!");
+        res.redirect("/campgrounds");
+      });
+    } catch (error) {
+      req.flash("error", error.message);
+      res.redirect("/register");
+    }
+  })
+);
+```
+
+---
+
+### **Logout**
+
+##### [Start](#) / [Authentication](#authentication)
+
+<br>
+
+Just like `isAuthenticated()` from [login middleware](#required-login-middleware), `logout()` method is already added to the request by passport.
+
+1. To logout we just have to use `req.logout()` to remove user from a session.
+
+routes/user.js
+
+```javascript
+router.get("/logout", (req, res) => {
+  req.logout();
+  req.flash("success", "Goodbye");
+  res.redirect("/campgrounds");
+});
+```
+
+2. Login + Register + Logout buttons on navbar
+3. To hide and show necessarry button according to user status(logged in or not), we will need to use `req.user` (current user in the session).
+   > which is also added by passport, just like isAuthenticated() and logout())
+4. Add req.user to our locals to pass the current user status into every template (rather than importing it to each template.)
+
+```javascript
+app.use((req, res, next) => {
+  // #4
+  res.locals.loggedInUser = req.user;
+  res.locals.success = req.flash("success");
+  res.locals.error = req.flash("error");
+  next();
+});
+```
+
+5. Show/hide the buttons by checking if there is a user data in loggedInUser.
+
+```html
+<div class="navbar-nav ms-auto">
+  <% if(!loggedInUser){ %>
+  <a class="nav-link" href="/login">Login</a>
+  <a class="nav-link" href="/register">Register</a>
+  <% }else{ %>
+  <a class="nav-link" href="/logout">Logout</a>
+  <% } %>
+</div>
 ```
 
 ---

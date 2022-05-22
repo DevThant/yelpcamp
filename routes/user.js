@@ -4,6 +4,7 @@ const router = express.Router();
 const catchAsync = require("../utils/catchAsync");
 
 const User = require("../models/user");
+const { isLoggedIn } = require("../utils/middleware");
 
 router.get("/register", (req, res) => {
   res.render("users/register");
@@ -16,8 +17,11 @@ router.post(
       const { username, email, password } = req.body;
       const user = new User({ username, email });
       const newUser = await User.register(user, password);
-      req.flash("success", "Welcome to the YelpCamp!");
-      res.redirect("/campgrounds");
+      req.login(newUser, (err) => {
+        if (err) return next(err);
+        req.flash("success", "Welcome to the YelpCamp!");
+        res.redirect("/campgrounds");
+      });
     } catch (error) {
       req.flash("error", error.message);
       res.redirect("/register");
@@ -40,5 +44,11 @@ router.post(
     res.redirect("/campgrounds");
   }
 );
+
+router.get("/logout", (req, res) => {
+  req.logout();
+  req.flash("success", "Goodbye");
+  res.redirect("/campgrounds");
+});
 
 module.exports = router;
