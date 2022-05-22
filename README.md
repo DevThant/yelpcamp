@@ -1542,6 +1542,8 @@ router.get(
 <br>
 
 1. [User model with passport-local-mongoose](#passport-local-mongoose)
+2. [Register form and user registration with passport](#register)
+3. [Login form and login with passport](#login)
 
 ### passport-local-mongoose
 
@@ -1619,6 +1621,93 @@ app.get("/demoRegister", async (req, res) => {
   const newUser = await User.register(user, "12345password");
   res.send(newUser);
 });
+```
+
+---
+
+### Register
+
+##### [Start](#) / [Authentication](#authentication)
+
+<br>
+
+1. Create register form in users/register.ejs
+2. Create get route for register form.
+3. Create post route for registering new user using passport.
+4. Use passport local mongoose static method Model.register(model, password) for creating new users.
+   > Also check the unique username.
+5. Use try/catch to do custom error handling during login. (User trying to register with existing username, ...etc.)
+   > Without try/catch, When user make some mistakes, the page will redirect the user to error page and we don't want that. Instead we flash the error to user with flash message.
+
+routes/user.js
+
+```javascript
+// #2
+router.get("/register", (req, res) => {
+  res.render("users/register");
+});
+
+// #3
+router.post(
+  "/register",
+  catchAsync(async (req, res) => {
+    // #5
+    try {
+      const { username, email, password } = req.body;
+      // We dont need to pass the password into user model, passport-local-mongoose will take care of hashing it and storing
+      const user = new User({ username, email });
+      // #4
+      const newUser = await User.register(user, password);
+      req.flash("success", "Welcome to the YelpCamp!");
+      res.redirect("/campgrounds");
+    } catch (error) {
+      req.flash("error", error.message);
+      res.redirect("/register");
+    }
+  })
+);
+```
+
+### Login
+
+##### [Start](#) / [Authentication](#authentication)
+
+<br>
+
+1. Create login form in users/login.ejs
+2. import passport to user.js
+3. Create get route for login form.
+4. Create post route to authenticate the user using passport.
+5. Using passport.authenticate in Login Route.
+   - If user fail the authentication, flash the error message to user.
+   - Redirect user upon failure.
+6. redirect the user upon successful authentication.
+
+routes/user.js
+
+```javascript
+const passport = require("passport");
+// #2
+router.get("/login", (req, res) => {
+  res.render("users/login");
+});
+
+// #3
+router.post(
+  "/login",
+  // #4
+  passport.authenticate("local", {
+    // #5.1
+    failureFlash: true,
+    // #5.2
+    failureRedirect: "/login",
+  }),
+  async (req, res) => {
+    // #6
+    req.flash("success", "Welcome back");
+    res.redirect("/campgrounds");
+  }
+);
 ```
 
 ---
