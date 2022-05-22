@@ -13,8 +13,13 @@
    - [Setting up Flash](#setting-up-flash)
 10. [Authentication](#authentication)
     - [User model with Passport Local Mongoose](#passport-local-mongoose)
-    - [](#)
-11. [Errors during development](#errors-during-development)
+    - [Register](#register)
+    - [Login](#login)
+    - [Login-middleware](#required-login-middleware)
+    - [Auto-login](#auto-login)
+    - [Logout](#logout)
+11. [Authorization](#authorization)
+12. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -1774,6 +1779,46 @@ router.get("/new", isLoggedIn, (req, res) => {
 //* Routes that need protection, new (get + post), edit (get + put), delete
 ```
 
+**Redirect the user back to the page/url that they were trying to access to before getting redirect to the login.**
+
+6. Store the url in session during isLoggedIn middleware,
+7. In actual login route (post route), use req.session.returnTo to extract the url that user was trying to access before and redirect to it or redirect to campgrounds if there is no returnTo in session.
+8. Delete the returnTo from session after getting the redirectURL.
+
+utils/middlewares.js
+
+```javascript
+module.exports.isLoggedIn = (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    // #6
+    req.session.returnTo = req.originalUrl;
+    req.flash("error", "You must be signed in!");
+    return res.redirect("/login");
+  }
+  next();
+};
+```
+
+routers/user.js
+
+```javascript
+router.post(
+  "/login",
+  passport.authenticate("local", {
+    failureFlash: true,
+    failureRedirect: "/login",
+  }),
+  async (req, res) => {
+    req.flash("success", "Welcome back");
+    // #7
+    const redirectURL = req.session.returnTo || "/campgrounds";
+    // #8
+    delete req.session.returnTo;
+    res.redirect(redirectURL);
+  }
+);
+```
+
 ---
 
 ### Auto Login
@@ -1862,6 +1907,71 @@ app.use((req, res, next) => {
   <a class="nav-link" href="/logout">Logout</a>
   <% } %>
 </div>
+```
+
+---
+
+### **Authorization**
+
+##### [Start](#)
+
+<br>
+
+1. Referencing the user as author in campgroundSchema. (The owner of the campground)
+
+models/campground.js
+
+```javascript
+const CampgroundSchema = new Schema({
+ ...
+  author: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+ ...
+});
+// Add existing user id into seed/index.js seedDB() and redo the seed to update campgrounds with user account.
+```
+
+2. Populate the author in necessary routes
+
+routes/campgrounds.js
+
+```javascript
+// Show route for campground
+router.get(
+  "/:id",
+  catchAsync(async (req, res) => {
+    // populate author
+    const campground = await Campground.findById(req.params.id)
+      .populate("reviews")
+      .populate("author");
+    if (!campground) {
+      req.flash("error", "Campground does not exist!");
+      return res.redirect("/campgrounds");
+    }
+    res.render("campgrounds/show", { campground });
+  })
+);
+```
+
+3. Connect logged in user and campground when creating a new one.
+   routes/campgrounds.js
+   > req.user is exposed by passport ( current user in passport session )
+
+```javascript
+router.post(
+  "/",
+  isLoggedIn,
+  validateCampground,
+  catchAsync(async (req, res, next) => {
+    const campground = new Campground(req.body.campground);
+    campground.author = req.user._id;
+    await campground.save();
+    req.flash("success", "New Campground has been added!");
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
 ```
 
 ---
