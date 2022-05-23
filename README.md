@@ -1917,6 +1917,20 @@ app.use((req, res, next) => {
 
 <br>
 
+1. [Adding an author to campground](#adding-author-to-campground)
+2. [Hide/show edit and delete](#hideshow---edit-and-delete-buttons)
+3. [Campground permissions for edit and delete](#campground-permissions)
+4. [Review Permissions](#review-permissions)
+5. [isReviewAuthor middleware](#add-isreviewauthor-middleware)
+
+---
+
+#### **Adding Author To Campground**
+
+##### [Start](#) / [Authorization](#authorization)
+
+<br>
+
 1. Referencing the user as author in campgroundSchema. (The owner of the campground)
 
 models/campground.js
@@ -1955,9 +1969,11 @@ router.get(
 );
 ```
 
-3. Connect logged in user and campground when creating a new one.
+3. Connect logged in user and campground when creating a new campground.
    routes/campgrounds.js
    > req.user is exposed by passport ( current user in passport session )
+
+routes/campgrounds.js
 
 ```javascript
 router.post(
@@ -1966,10 +1982,313 @@ router.post(
   validateCampground,
   catchAsync(async (req, res, next) => {
     const campground = new Campground(req.body.campground);
+    // #3
     campground.author = req.user._id;
     await campground.save();
     req.flash("success", "New Campground has been added!");
     res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+```
+
+#### **Hide/Show - Edit and Delete Buttons**
+
+##### [Start](#) / [Authorization](#authorization)
+
+<br>
+
+1. Check if there is any user
+   > If we dont check, the ejs will break when there is no user (object.id.equals(undefined)). So we use && to check if there is any user then we proceed to compare.
+2. Check if campground author is equals to the current logged in user
+   > We don't need to specify the id like this - `campground.author._id.equals(loggedInUser._id)`. Mongo is flexible and knows that we are comparing ids.
+
+views/campgrounds/show
+
+```html
+<!--     #1               #2                                        -->
+<% if(loggedInUser && campground.author.equals(loggedInUser._id)){%>
+<a href="/campgrounds/<%= campground.id %>/edit" class="btn btn-primary"
+  >Edit</a
+>
+<form
+  class="d-inline"
+  action="/campgrounds/<%= campground.id %>?_method=Delete"
+  method="post"
+>
+  <button class="btn btn-danger" type="submit">Delete Campground</button>
+</form>
+<% } %>
+```
+
+#### **Campground Permissions**
+
+##### [Start](#) / [Authorization](#authorization)
+
+<br>
+
+1. **Prevents accessing** edit route if user do not own the campground
+2. **Prevents updating** the campground if user do not own the campground
+3. **Prevents deleting** the campground if user do not own the campground
+4. Refactor the above using middleware.
+
+routes/campgrounds.js
+
+```javascript
+// #1
+router.get(
+  "/:id/edit",
+  isLoggedIn,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findById(id);
+    // #1
+    if (!campground) {
+      req.flash("error", "Campground does not exist!");
+      return res.redirect("/campgrounds");
+    }
+    if (!campground.author.equals(req.user._id)) {
+      req.flash("error", "You do not have permission!");
+      return res.redirect(`/campgrounds/${campground.id}`);
+    }
+    res.render("campgrounds/edit", { campground });
+  })
+);
+// #2
+router.put(
+  "/:id",
+  isLoggedIn,
+  validateCampground,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findById(id);
+    // #2
+    if (!campground.author.equals(req.user._id)) {
+      req.flash("error", "You do not have permission!");
+      return res.redirect(`/campgrounds/${campground.id}`);
+    }
+    await Campground.findByIdAndUpdate(id, {
+      ...req.body.campground,
+    });
+    req.flash("success", "Campground Updated.");
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+// #3
+router.delete(
+  "/:id",
+  isLoggedIn,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findById(id);
+    // #3
+    if (!campground.author.equals(req.user._id)) {
+      req.flash("error", "You do not have permission!");
+      return res.redirect(`/campgrounds/${campground.id}`);
+    }
+    await Campground.findByIdAndDelete(id);
+    req.flash("success", `Campground Deleted!`);
+    res.redirect("/campgrounds");
+  })
+);
+```
+
+#4 Refactoring the above code.
+
+1. Remove the block of code that compare the author with user into seperate middleware
+2. Put the middleware in necessary routes(edit(form and action), delete(action))
+
+routes/campgrounds.js
+
+```javascript
+const isAuthor = async (req, res, next) => {
+  const { id } = req.params;
+  const campground = await Campground.findById(id);
+  if (!campground.author.equals(req.user._id)) {
+    req.flash("error", "You do not have permission!");
+    return res.redirect(`/campgrounds/${campground.id}`);
+  }
+  next();
+};
+
+router.get(
+  "/:id/edit",
+  isLoggedIn,
+  isAuthor,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findById(id);
+    if (!campground) {
+      req.flash("error", "Campground does not exist!");
+      return res.redirect("/campgrounds");
+    }
+    res.render("campgrounds/edit", { campground });
+  })
+);
+
+router.put(
+  "/:id",
+  isLoggedIn,
+  isAuthor,
+  validateCampground,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    await Campground.findByIdAndUpdate(id, {
+      ...req.body.campground,
+    });
+    req.flash("success", "Campground Updated.");
+    res.redirect(`/campgrounds/${id}`);
+  })
+);
+
+router.delete(
+  "/:id",
+  isLoggedIn,
+  isAuthor,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    await Campground.findByIdAndDelete(id);
+    req.flash("success", `Campground Deleted!`);
+    res.redirect("/campgrounds");
+  })
+);
+```
+
+---
+
+#### **Review Permissions**
+
+##### [Start](#) / [Authorization](#authorization)
+
+<br>
+
+First, add author(reference to user) to review model.
+
+models/review.js
+
+```javascript
+const reviewSchema = new Schema({
+  body: {
+    type: String,
+    required: true,
+  },
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5,
+  },
+  // #
+  author: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+});
+```
+
+1. Import the isLoggedIn and isAuthor middleware to routes/reviews.js
+2. User must have account in order to post a review, so prevent the post route with isLoggedIn middelware.
+   > also hide the form to create new reviews in views/campgrounds/show.ejs
+3. Add user to review when posting a new review
+
+routes/reviews.js
+
+```javascript
+// #1
+const { validateReview, isLoggedIn } = require("../utils/middlewares");
+
+router.post(
+  "/",
+  // #2
+  isLoggedIn,
+  validateReview,
+  catchAsync(async (req, res) => {
+    const campground = await Campground.findById(req.params.id);
+    const review = new Review(req.body.review);
+    // #3
+    review.author = req.user._id;
+    campground.reviews.push(review);
+    await review.save();
+    await campground.save();
+    req.flash("success", "Review Added!");
+    res.redirect(`/campgrounds/${campground.id}`);
+  })
+);
+```
+
+4. Populate the review's author in campgrounds show page to display user name in thier reviews.
+   > Nested population.
+
+routes/campgrounds.js
+
+```javascript
+router.get(
+  "/:id",
+  catchAsync(async (req, res) => {
+    const campground = await Campground.findById(req.params.id)
+      // #4
+      .populate({ path: "reviews", populate: { path: "author" } })
+      .populate("author");
+    if (!campground) {
+      req.flash("error", "Campground does not exist!");
+      return res.redirect("/campgrounds");
+    }
+    res.render("campgrounds/show", { campground });
+  })
+);
+```
+
+#### **Add isReviewAuthor Middleware**
+
+##### [Start](#) / [Authorization](#authorization)
+
+<br>
+
+Add a new middleware where we check the author of the reviews with the current logged in user. Just like isAuthor from campground, if the user does not have permission if they are not logged in or not the owner of the review.
+
+> Also hide the delete button if the user is not the owner of the review.
+
+utils/middlewares
+
+```javascript
+module.exports.isReviewAuthor = async (req, res, next) => {
+  const { id, reviewId } = req.params;
+  const review = await Review.findById(reviewId);
+  if (!review.author.equals(req.user._id)) {
+    req.flash("error", "You do not have permission!");
+    return res.redirect(`/campgrounds/${id}`);
+  }
+  next();
+};
+```
+
+```html
+<% if(loggedInUser && review.author.equals(loggedInUser._id)){%>
+<form
+  class="d-inline"
+  action="/campgrounds/<%= campground.id %>/reviews/<%= review.id %>?_method=Delete"
+  method="post"
+>
+  <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+</form>
+<% } %>
+```
+
+- Add isReviewAuthor to necessary routes
+
+routes/reviews.js
+
+```javascript
+router.delete(
+  "/:reviewId",
+  isLoggedIn,
+  // #
+  isReviewAuthor,
+  catchAsync(async (req, res) => {
+    const { id, reviewId } = req.params;
+    await Campground.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
+    await Review.findByIdAndDelete(reviewId);
+    req.flash("success", `Review Deleted!`);
+    res.redirect(`/campgrounds/${id}`);
   })
 );
 ```

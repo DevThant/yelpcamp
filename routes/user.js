@@ -4,7 +4,6 @@ const router = express.Router();
 const catchAsync = require("../utils/catchAsync");
 
 const User = require("../models/user");
-const { isLoggedIn } = require("../utils/middleware");
 
 router.get("/register", (req, res) => {
   res.render("users/register");
