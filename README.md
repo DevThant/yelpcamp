@@ -1,25 +1,26 @@
 # **Yelp Camp**
 
-1. [Basic Setup](#basic-setup)
-2. [Basic CRUD](#basic-crud)
-3. [Basic templating and layouts with ejs and BOOTSTRAP 5](#basic-templating-and-layouts)
-4. [Basic image (Modify campground model)](#basic-image)
-5. [Errors and validating data](#errors-and-validating-data)
-6. [Review model](#review-model)
-7. [Refactor Routes](#refactor-routes)
-8. [Serving Static Assets](#serving-static-assets)
-9. [Session](#session)
+1. [**Basic Setup**](#basic-setup)
+2. [**Basic CRUD**](#basic-crud)
+3. [**Basic templating** and layouts with **ejs & BOOTSTRAP 5**](#basic-templating-and-layouts)
+4. [**Basic image**(Modify campground model)](#basic-image)
+5. [**Errors & Validating Data**](#errors-and-validating-data)
+6. [**Review model**](#review-model)
+7. [**Refactor Routes**](#refactor-routes)
+8. [**Serving Static Assets**](#serving-static-assets)
+9. [**Session**](#session)
    - [Setting up Session](#setting-up-session)
    - [Setting up Flash](#setting-up-flash)
-10. [Authentication](#authentication)
+10. [**Authentication**](#authentication)
     - [User model with Passport Local Mongoose](#passport-local-mongoose)
     - [Register](#register)
     - [Login](#login)
     - [Login-middleware](#required-login-middleware)
     - [Auto-login](#auto-login)
     - [Logout](#logout)
-11. [Authorization](#authorization)
-12. [Errors during development](#errors-during-development)
+11. [**Authorization**](#authorization)
+12. [**Refactor routes** with **controller** (MVC)](#controllers)
+13. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -2291,6 +2292,122 @@ router.delete(
     res.redirect(`/campgrounds/${id}`);
   })
 );
+```
+
+---
+
+### **Controllers**
+
+##### [Start](#)
+
+<br>
+
+1. Create folder for controllers
+   > `mkdir controllers`
+2. Create controller files.
+   > /controllers/>touch campgrounds.js
+3. Move the CRUD funtions from routes to controllers
+
+routes/campgrounds.js
+
+```javascript
+const campgrounds = require("../controllers/campgrounds.js");
+// #3
+router.get("/", catchAsync(campgrounds.index));
+
+router.get("/new", isLoggedIn, campgrounds.renderNewForm);
+
+router.post(
+  "/",
+  isLoggedIn,
+  validateCampground,
+  catchAsync(campgrounds.createCampground)
+);
+
+router.get("/:id", catchAsync(campgrounds.showCampground));
+
+router.get(
+  "/:id/edit",
+  isLoggedIn,
+  isAuthor,
+  catchAsync(campgrounds.renderEditForm)
+);
+
+router.put(
+  "/:id",
+  isLoggedIn,
+  isAuthor,
+  validateCampground,
+  catchAsync(campgrounds.updateCampground)
+);
+
+router.delete(
+  "/:id",
+  isLoggedIn,
+  isAuthor,
+  catchAsync(campgrounds.deleteCampground)
+);
+```
+
+controllers/campgrounds.js
+
+```javascript
+const Campground = require("../models/campground");
+
+// #3
+module.exports.index = async (req, res) => {
+  const campgrounds = await Campground.find({});
+  res.render("campgrounds/index", { campgrounds });
+};
+
+module.exports.renderNewForm = (req, res) => {
+  res.render("campgrounds/new");
+};
+
+module.exports.createCampground = async (req, res, next) => {
+  const campground = new Campground(req.body.campground);
+  campground.author = req.user._id;
+  await campground.save();
+  req.flash("success", "New Campground has been added!");
+  res.redirect(`/campgrounds/${campground.id}`);
+};
+
+module.exports.showCampground = async (req, res) => {
+  const campground = await Campground.findById(req.params.id)
+    .populate({ path: "reviews", populate: { path: "author" } })
+    .populate("author");
+  if (!campground) {
+    req.flash("error", "Campground does not exist!");
+    return res.redirect("/campgrounds");
+  }
+  res.render("campgrounds/show", { campground });
+};
+
+module.exports.renderEditForm = async (req, res) => {
+  const { id } = req.params;
+  const campground = await Campground.findById(id);
+  if (!campground) {
+    req.flash("error", "Campground does not exist!");
+    return res.redirect("/campgrounds");
+  }
+  res.render("campgrounds/edit", { campground });
+};
+
+module.exports.updateCampground = async (req, res) => {
+  const { id } = req.params;
+  await Campground.findByIdAndUpdate(id, {
+    ...req.body.campground,
+  });
+  req.flash("success", "Campground Updated.");
+  res.redirect(`/campgrounds/${id}`);
+};
+
+module.exports.deleteCampground = async (req, res) => {
+  const { id } = req.params;
+  await Campground.findByIdAndDelete(id);
+  req.flash("success", `Campground Deleted!`);
+  res.redirect("/campgrounds");
+};
 ```
 
 ---
