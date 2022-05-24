@@ -20,7 +20,8 @@
     - [Logout](#logout)
 11. [**Authorization**](#authorization)
 12. [**Refactor routes** with **controller** (MVC)](#controllers)
-13. [Errors during development](#errors-during-development)
+13. [`router.route()`(Fancy way to restructure routes)](#restructure-routes)
+14. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -2307,6 +2308,7 @@ router.delete(
 2. Create controller files.
    > /controllers/>touch campgrounds.js
 3. Move the CRUD funtions from routes to controllers
+4. Do the same for the other routes.
 
 routes/campgrounds.js
 
@@ -2408,6 +2410,71 @@ module.exports.deleteCampground = async (req, res) => {
   req.flash("success", `Campground Deleted!`);
   res.redirect("/campgrounds");
 };
+```
+
+---
+
+### Restructure Routes
+
+##### [Start](#)
+
+<br>
+
+Use router.route() to group together the same paths with different request.
+
+routes/campgrounds.js
+
+```javascript
+router
+  .route("/")
+  .get(catchAsync(campgrounds.index))
+  .post(
+    isLoggedIn,
+    validateCampground,
+    catchAsync(campgrounds.createCampground)
+  );
+
+router.get("/new", isLoggedIn, campgrounds.renderNewForm);
+
+router
+  .route("/:id")
+  .get(catchAsync(campgrounds.showCampground))
+  .put(
+    isLoggedIn,
+    isAuthor,
+    validateCampground,
+    catchAsync(campgrounds.updateCampground)
+  )
+  .delete(isLoggedIn, isAuthor, catchAsync(campgrounds.deleteCampground));
+
+router.get(
+  "/:id/edit",
+  isLoggedIn,
+  isAuthor,
+  catchAsync(campgrounds.renderEditForm)
+);
+```
+
+routes/user.js
+
+```javascript
+router
+  .route("/register")
+  .get(users.renderRegister)
+  .post(catchAsync(users.createUser));
+
+router
+  .route("/login")
+  .get(users.renderLogin)
+  .post(
+    passport.authenticate("local", {
+      failureFlash: true,
+      failureRedirect: "/login",
+    }),
+    users.login
+  );
+
+router.get("/logout", users.logout);
 ```
 
 ---
