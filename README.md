@@ -19,9 +19,11 @@
     - [Auto-login](#auto-login)
     - [Logout](#logout)
 11. [**Authorization**](#authorization)
-12. [**Refactor routes** with **controller** (MVC)](#controllers)
+12. [**Refactor routes** with **controllers** (MVC)](#controllers)
 13. [`router.route()`(Fancy way to restructure routes)](#restructure-routes)
-14. [Errors during development](#errors-during-development)
+14. [Image Upload](#image-upload)
+    - [Multer middleware](#multer-middleware)
+15. [Errors during development](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -2476,6 +2478,75 @@ router
 
 router.get("/logout", users.logout);
 ```
+
+---
+
+### **Image Upload**
+
+##### [Start](#)
+
+<br>
+
+We are going to upload our images to cloudinary and serve them on our app. For uploading files normal html form does not work, we have to use enctype
+
+```html
+<form action="/somewhere" method="post" enctype="multipart/form-data">...</form>
+```
+
+In order for the enctype to work properly, we will need middleware called **multer**.
+
+1. [Multer Middleware](#mutler-middleware)
+2. [Cloudinary](#cloudinary)
+
+---
+
+#### **Multer Middleware**
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+**Multer** is a node.js middleware for handling multipart/form-data, which is primarily used for uploading files. It is written on top of busboy for maximum efficiency. **[Doc](https://www.npmjs.com/package/multer)**
+
+1. Install multer (npm i multer)
+2. Import multer and set the upload destination
+3. Set up cloudinary middleware for single image or array of images
+4. Set mutiple in input to upload multiple files.
+
+routes/campgrounds.js
+
+```javascript
+// #2
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
+
+router
+  .route("/")
+  .get(catchAsync(campgrounds.index))
+  // #3
+  .post(upload.array("campground[image]"), (req, res) => {
+    console.log(req.body, req.files);
+    res.send("It worked");
+  });
+```
+
+```html
+<!-- 4 -->
+<input
+  class="form-control"
+  type="file"
+  name="campground[image]"
+  id="image"
+  multiple
+  required
+/>
+```
+
+#### **Cloudinary**
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
 
 ---
 
