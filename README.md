@@ -25,7 +25,7 @@
     - [Multer middleware](#multer-middleware)
     - [**Enviroment Variable .env**](#env)
     - [Cloudinary](#cloudinary)
-    - [Uploading to clodinary basic](#uploading-to-cloudinary-basic)
+    - [Uploading to clodinary basic](#uploading-image-to-cloudinary)
 15. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
@@ -2656,9 +2656,10 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   // this is config that we set up above
   cloudinary,
-  // folder on cloudinary where our data will be store
-  folder: "YelpCamp",
-  allowedFormats: ["jpeg", "png", "jpg"],
+  params: {
+    folder: "YelpCamp",
+    allowedFormats: ["jpeg", "png", "jpg"],
+  },
 });
 
 // #6
