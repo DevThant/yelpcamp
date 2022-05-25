@@ -20,10 +20,13 @@
     - [Logout](#logout)
 11. [**Authorization**](#authorization)
 12. [**Refactor routes** with **controllers** (MVC)](#controllers)
-13. [`router.route()`(Fancy way to restructure routes)](#restructure-routes)
-14. [Image Upload](#image-upload)
+13. [**`router.route()`**(Fancy way to restructure routes)](#restructure-routes)
+14. [**Image Upload**](#image-upload)
     - [Multer middleware](#multer-middleware)
-15. [Errors during development](#errors-during-development)
+    - [**Enviroment Variable .env**](#env)
+    - [Cloudinary](#cloudinary)
+    - [Uploading to clodinary basic](#uploading-to-cloudinary-basic)
+15. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -2542,11 +2545,137 @@ router
 />
 ```
 
+---
+
+#### **.env**
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+### Note: This is for Development purpose only, not to be used in Production!
+
+<br>
+
+Use **.env to store** the **API KEYS and other credentials**. AND we **do not include this file** when we submit our app to github or anywhere.
+
+1. create .env file (Do it in the top level(root) of your app!)
+2. Store secrets, api keys, and important credentials in env.
+   > By using key-value pairs.
+3. Use dotenv npm package to use our .env file. [Docs](https://www.npmjs.com/package/dotenv)
+   > npm i dotenv
+
+.env
+
+```.env
+<!-- 2 -->
+SECRET=thisisasecret
+API_KEY=685648481638677
+```
+
+4. Set up a condition in main app.js, if we are running the app in development mode, require the dotenv package.
+   > process.env.NODE_ENV is enviroment where our node app runs and usually it is either development or production.
+5. We can now acceess our stored values from env with process.env.key
+   > Expected output : thisisasecret
+
+app.js
+
+```javascript
+// #4
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+
+// #5
+console.log(process.env.SECRET)
+
+const express = require('express');
+...
+```
+
+---
+
 #### **Cloudinary**
 
 ##### [Start](#) / [Image Upload](#image-upload)
 
 <br>
+
+Open cloudinary accounts here https://cloudinary.com/
+
+Read [.env](#env) before proceeding!
+
+1. Place cloudinary cloud name, key and secret in .env.
+   > Use values from your cloudinary account. Look for them at dashboard
+2. Make sure to install dotenv and require it in main app if the app is running in development mode.
+3. Now we can use our credentials from .env in anyplace of the app.
+   > process.env.CLOUDINARY_CLOUD_NAME;
+
+.env
+
+```
+CLOUDINARY_CLOUD_NAME=cloudname
+CLOUDINARY_KEY=key
+CLOUDINARY_SECRET=secret
+```
+
+---
+
+#### Uploading image to cloudinary
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+For everythinng to work and upload images from multer to cloudinary, we need to install two more packages : **cloudinary** and **multer-storage-cloudinary**. Its on the doc [here](https://www.npmjs.com/package/multer-storage-cloudinary)
+
+1. Install packages
+   > npm i cloudinary multer-storage-cloudinary
+2. Create cloudinary folder and a file, where we write cloudinary configs
+3. Import cloudinary and multer-storage-cloudinary
+   > Always check the doc, since we need the cloudinary version to be the same as doc.
+4. This is not in the doc, but we need to set up an instance of cloudinary config with our credentials.
+5. Instantiate new CloudinaryStorage instance, AND specify the config, foldername(on cloudinary) to store the data, and allowed data formats.
+6. Export both instances(cloudinary and storage).
+
+cloudinary/index.js
+
+```javascript
+// #3
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+// #4
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
+});
+
+// #5
+const storage = new CloudinaryStorage({
+  // this is config that we set up above
+  cloudinary,
+  // folder on cloudinary where our data will be store
+  folder: "YelpCamp",
+  allowedFormats: ["jpeg", "png", "jpg"],
+});
+
+// #6
+module.exports = { cloudinary, storage };
+```
+
+7. Import the storage in routes/campgrounds.js
+   > We don't need to specify ../cloudinary/index, since express looks for index.js file
+8. Set the multer dest to storage.
+   > Now if we upload photos they will be stored on the cloudinary. You can look at the path in req.files for the url of photo location.
+
+```javascript
+// #7
+const storage = require("../cloudinary");
+const multer = require("multer");
+const upload = multer({ storage });
+```
 
 ---
 
@@ -2559,6 +2688,7 @@ router
 1. [Cannot read property 'push' of undefined](#e1)
 2. [TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined](#e2)
 3. [TypeError [ERR_INVALID_ARG_VALUE]: The argument 'id' must be a non-empty string. Received ''](#e3)
+4. [NO ERROR JUST BLANK, during image upload to cloudinary with multer middleware](#e4)
 
 #### E1
 
@@ -2718,6 +2848,80 @@ Make sure that every modules has been imported correctly.
 ```javascript
 //                  #fix
 const Joi = require("joi");
+```
+
+---
+
+#### E4
+
+##### [Start](#) / [More Errors](#errors-during-development)
+
+<br>
+
+No error indication nor console messages. Happened during the image upload to cloudinary with multer middleware.
+
+**Causes:**
+
+Potential causes:
+
+1. Typos in cloudinary.config from cloudinary/index.js
+
+cloudinary/index.js
+
+```javascript
+// Make sure these are correct
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
+});
+```
+
+2. Typos in .env
+   > Check each of these from cloudinary dashboard
+
+.env
+
+```env
+
+CLOUDINARY_CLOUD_NAME=name
+CLOUDINARY_KEY=key
+CLOUDINARY_SECRET=secret
+```
+
+3. .env file must be in top-level of the app, root dir.
+
+4. Missing the entire enviroment check and import of dotenv in main app.js.
+
+app.js
+
+```javascript
+// CHECK
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+// CHECK
+
+const express = require("express");
+...
+```
+
+5. Check the curly braces in multer()
+
+routes/campgrounds.js
+
+```javascript
+// Right
+const { storage } = require("../cloudinary");
+const upload = multer({ storage });
+
+// Wrong
+const { storage } = require("../cloudinary");
+const upload = multer(storage);
+
+// Wrong
+const storage = require("../cloudinary");
+const upload = multer({ storage });
 ```
 
 ---
