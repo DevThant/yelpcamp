@@ -2678,6 +2678,111 @@ const multer = require("multer");
 const upload = multer({ storage });
 ```
 
+9. Now if we perform an upload, and check the req.files in post route, we can see the details of our upload file.
+   > and use that to grab the path and store it in the mongodb
+
+```javascript
+router
+  .route("/")
+  .get(catchAsync(campgrounds.index))
+  // #9
+  .post(upload.array("campground[image]"), (req, res) => {
+    console.log(req.body, req.files);
+    res.send("It worked");
+  });
+```
+
+```powershell
+[Object: null prototype] {
+  campground: [Object: null prototype] {
+    title: 'asdsadas',
+    location: 'dasdasdasdasd',
+    description: 'asdsadsadasdsa',
+    price: '12'
+  }
+} [
+ #9
+  {
+    fieldname: 'campground[image]',
+    originalname: 'googlemap2.PNG',
+    encoding: '7bit',
+    mimetype: 'image/png',
+    path: 'https://res.cloudinary.com/psthant/image/upload/v1653556315/YelpCamp/
+ati4jwfsqhserusicoal.png',
+    size: 2752294,
+    filename: 'YelpCamp/ati4jwfsqhserusicoal'
+  }
+]
+```
+
+---
+
+#### Storing Uploaded Image Links in Mongo
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+We can extract the link/path, and filename(to delete image) from uploaded image with req.files. [see no.9](#uploading-image-to-cloudinary)
+
+1. Modify the image of the campground model
+
+models/campground.js
+
+```javascript
+const CampgroundSchema = new Schema({
+  ...
+  //from
+  image: String,
+  //to
+  images: [
+    {
+      url:String,
+      filename: String,
+    }
+  ]
+});
+```
+
+2. Extract the path and filename of uploaded images and put it in `campground.images`.
+   > Using **`map`** take **url** and **filename** of each f, and create a new array of objects.
+
+controllers/campgrounds.js
+
+```javascript
+module.exports.createCampground = async (req, res, next) => {
+  const campground = new Campground(req.body.campground);
+  // #2
+  campground.images = req.files.map((f) => ({
+    url: f.path,
+    filename: f.filename,
+  }));
+  campground.author = req.user._id;
+  await campground.save();
+  req.flash("success", "New Campground has been added!");
+  res.redirect(`/campgrounds/${campground.id}`);
+};
+```
+
+3. !! Now the problem lies in the campground routes
+   - upload which is multer upload the image to cloud and then we get req.file.
+   - But we need to validate the campground informations first before uploading the file!
+   - So we have to place the validation before multer, but the problem is if we don't upload with mutler first there is no path and url of image.
+   - We'll have to go around this problem [later](), but for now **remove image from JoiSchema to progress**.
+
+```javascript
+router
+  .route("/")
+  .get(catchAsync(campgrounds.index))
+  .post(
+    isLoggedIn,
+    // #3
+    upload.array("campground[image]"),
+    validateCampground,
+    catchAsync(campgrounds.createCampground)
+  );
+```
+
 ---
 
 ### **Errors during development**
