@@ -27,6 +27,8 @@
     - [Cloudinary](#cloudinary)
     - [Uploading to clodinary basic](#uploading-image-to-cloudinary)
     - [Store upload images' path and filename in mongo](#storing-uploaded-image-links-in-mongo)
+    - [Add image upload to campground edit](#adding-upload-to-edit-page)
+    - [Delete Images from campground (edit/update)](#delete-images)
 15. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
@@ -2839,7 +2841,7 @@ module.exports.updateCampground = async (req, res) => {
 
 ---
 
-### **Custom File Input (NOT WORKING WITH CURRENT BOOTSTRAP)**
+### **Custom File Input (NOT WORKING WITH CURRENT BOOTSTRAP 5.1)**
 
 ##### [Start](#) / [Image Upload](#image-upload)
 
@@ -2885,6 +2887,122 @@ public/javascripts/validateForm.js
     </label>
   </div>
 </div>
+```
+
+---
+
+#### **Delete Images**
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+1. Display all the images associated with campground in edit page.
+2. Put check box for every image
+3. Name chatbox and put all the selected values inside it.
+   > Each checked images' filename will be put into deleteImages value which is array when parsed. (`req.body.deleteImages`)
+4. Add deleteImages in JoiSchema validation.
+   > otherwise, we will see deleteImages is not allowed
+
+Note: DO NOT PUT ANY SPACE after ejs, or you might face problems
+
+```html
+value="<%= img.filename %>"
+<!-- Has SPACE -->
+value="<%= img.filename %> "
+```
+
+views/campgrounds/edit.ejs
+
+```html
+<div class="mb-3">
+  <!-- #1 -->
+  <% campground.images.forEach(function(img, i){%>
+  <img src="<%= img.url %> " class="img-thumbnail" />
+  <!-- #2 -->
+  <div class="form-check form-check-inline">
+    <input
+      class="form-check-input"
+      type="checkbox"
+      id="image-<%= i%>"
+      #3
+      name="deleteImages[]"
+      value="<%= img.filename %> "
+    />
+    <label class="form-check-label" for="image-<%= i%>">Select</label>
+  </div>
+  <% }) %>
+</div>
+```
+
+JoiSchemas.js
+
+```javascript
+module.exports.campgroundSchema = Joi.object({
+  campground: Joi.object({
+    ...
+    }).required(),
+    // #4
+  deleteImages: Joi.array(),
+});
+```
+
+**Next, Delete images from mongodb and cloudinary server **
+
+Delete images on Mongodb:
+
+1. Check if there is any images to delete
+2. Pull out the images that match with the filename from deleteImages array.
+
+controllers/campgrounds.js
+
+```javascript
+module.exports.updateCampground = async (req, res) => {
+  const { id } = req.params;
+  const campground = await Campground.findByIdAndUpdate(id, {
+    ...req.body.campground,
+  });
+  images = req.files.map((f) => ({
+    url: f.path,
+    filename: f.filename,
+  }));
+  campground.images.push(...images);
+  await campground.save();
+  // #1
+  if (req.body.deleteImages) {
+    // #2
+    await campground.updateOne({
+      $pull: { images: { filename: { $in: req.body.images } } },
+    });
+  }
+  req.flash("success", "Campground Updated.");
+  res.redirect(`/campgrounds/${id}`);
+};
+```
+
+Delete Images from cloudinary
+
+1. Import the cloudinary from cloudinary/index.js
+2. Use uploader and call destroy method on filename to delete image from cloudinary.
+
+```javascript
+// #1
+const { cloudinary } = require("../cloudinary");
+
+module.exports.updateCampground = async (req, res) => {
+  // ...
+  if (req.body.deleteImages) {
+    // #2
+    for (let filename of req.body.deleteImages) {
+      await cloudinary.uploader.destroy(filename);
+    }
+    await campground.updateOne({
+      $pull: { images: { filename: { $in: req.body.images } } },
+    });
+  }
+  req.flash("success", "Campground Updated.");
+  res.redirect(`/campgrounds/${id}`);
+};
 ```
 
 ---
