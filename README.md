@@ -26,6 +26,7 @@
     - [**Enviroment Variable .env**](#env)
     - [Cloudinary](#cloudinary)
     - [Uploading to clodinary basic](#uploading-image-to-cloudinary)
+    - [Store upload images' path and filename in mongo](#storing-uploaded-image-links-in-mongo)
 15. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
@@ -2501,6 +2502,8 @@ In order for the enctype to work properly, we will need middleware called **mult
 1. [Multer Middleware](#mutler-middleware)
 2. [Cloudinary](#cloudinary)
 
+Note : [Reduce Image Upload time](#tips)
+
 ---
 
 #### **Multer Middleware**
@@ -2717,7 +2720,7 @@ ati4jwfsqhserusicoal.png',
 
 ---
 
-#### Storing Uploaded Image Links in Mongo
+#### **Storing Uploaded Image Links in Mongo**
 
 ##### [Start](#) / [Image Upload](#image-upload)
 
@@ -2771,16 +2774,117 @@ module.exports.createCampground = async (req, res, next) => {
    - We'll have to go around this problem [later](), but for now **remove image from JoiSchema to progress**.
 
 ```javascript
+router.route("/").get(catchAsync(campgrounds.index)).post(
+  isLoggedIn,
+  // #3
+  upload.array("campground[image]"),
+  validateCampground,
+  catchAsync(campgrounds.createCampground)
+);
+```
+
+---
+
+### **Adding Upload To Edit Page**
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+1. Add encoding to form in campgrounds/edit.ejs and multiple to image file selection.
+   > enctype="multipart/form-data"
+2. Change the update route and controller for image upload
+   > In controller, we cannot directly push the image from map. Because map created a new array for us. And we cannot push array into existing array of objects. So we have to store and spread them to push into the existing array.
+
+Note: In future updates, we can do #2 directly inside of Campground.findByIdAndUpdate.
+
+routes/campgrounds.js
+
+```javascript
 router
-  .route("/")
-  .get(catchAsync(campgrounds.index))
-  .post(
+  .route("/:id")
+  .get(catchAsync(campgrounds.showCampground))
+  .put(
     isLoggedIn,
-    // #3
+    isAuthor,
+    // #2
     upload.array("campground[image]"),
     validateCampground,
-    catchAsync(campgrounds.createCampground)
-  );
+    catchAsync(campgrounds.updateCampground)
+  )
+  .delete(isLoggedIn, isAuthor, catchAsync(campgrounds.deleteCampground));
+```
+
+controllers/campgrounds.js
+
+```javascript
+module.exports.updateCampground = async (req, res) => {
+  const { id } = req.params;
+  const campground = await Campground.findByIdAndUpdate(id, {
+    ...req.body.campground,
+  });
+  // #2
+  images = req.files.map((f) => ({
+    url: f.path,
+    filename: f.filename,
+  }));
+  // #2
+  campground.images.push(...images);
+  // # save the campground again after pushing
+  await campground.save();
+  req.flash("success", "Campground Updated.");
+  res.redirect(`/campgrounds/${id}`);
+};
+```
+
+---
+
+### **Custom File Input (NOT WORKING WITH CURRENT BOOTSTRAP)**
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+To display the name of the choosed file in our file input we will need to use an npm called bs-custom-file-input. [doc](https://www.npmjs.com/package/bs-custom-file-input)
+
+1. Copy the minified version cdn from doc and paste it in the boilerplate
+2. Call init method to use the bs custom file input in public/javascripts/validateForm.
+3. [See this for more example on using this npm](https://github.com/Johann-S/bs-custom-file-input/blob/master/tests/index.html)
+4. In example the bs-custom-file is expecting these classes
+   > custom-file and custom-file-label , add them to your bootstrap file input
+
+public/javascripts/validateForm.js
+
+```javascript
+(function () {
+  "use strict";
+  // #2
+  bsCustomFileInput.init();
+
+  const forms = document.querySelectorAll(".validated-form");
+    ...
+})();
+```
+
+```html
+<div class="col-sm-12 mt-5">
+  <h3>Example with label containing a child</h3>
+  <!-- #4 -->
+  <div class="custom-file mt-2">
+    <input
+      id="inputGroupFile04"
+      type="file"
+      multiple
+      class="custom-file-input"
+      multiple
+    />
+    <label class="custom-file-label" for="inputGroupFile04">
+      <span class="d-inline-block text-truncate w-75"
+        >Choose several files</span
+      >
+    </label>
+  </div>
+</div>
 ```
 
 ---
@@ -3031,3 +3135,25 @@ const upload = multer({ storage });
 ```
 
 ---
+
+### Tips
+
+##### [Start](#)
+
+You can research on how to limit the image upload size with multer online and try to implement solutions there (so the user cannot upload images with large file sizes), for example: https://stackoverflow.com/questions/34697502/how-to-limit-the-file-size-when-uploading-with-multer
+
+Be sure to also research how to limit file upload size with Node.js (and Express.js) to investigate more potential options.
+
+You can also look into image file upload size validation on the frontend too: https://www.geeksforgeeks.org/validation-of-file-size-while-uploading-using-javascript-jquery/
+
+https://stackoverflow.com/a/3717847
+
+However, sometimes the user might be patient if they are uploading large-size images, since it can also depend on the user's internet connection, as mentioned above.
+
+You could also research how to resize an image with frontend JS before submit, for example: https://stackoverflow.com/questions/23945494/use-html5-to-resize-an-image-before-upload
+
+You could also look into using the Cloudinary API to resize large images after upload, to make them smaller perhaps: https://cloudinary.com/documentation/image_transformations
+
+Please let us know if you have any other questions!
+
+You can also discuss these topics in the course community Discord server: https://discord.gg/CUga7jX
