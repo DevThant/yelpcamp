@@ -29,6 +29,7 @@
     - [Store upload images' path and filename in mongo](#storing-uploaded-image-links-in-mongo)
     - [Add image upload to campground edit](#adding-upload-to-edit-page)
     - [Delete Images from campground (edit/update)](#delete-images)
+    - [Display Image with thumbnail using cloudinary api and virtual](#image-thumbnail)
 15. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
@@ -3006,6 +3007,45 @@ module.exports.updateCampground = async (req, res) => {
 ```
 
 ---
+
+#### **Image Thumbnail**
+
+##### [Start](#) / [Image Upload](#image-upload)
+
+<br>
+
+Use cloudinary URL API to get thumbnail. [Doc](https://cloudinary.com/documentation/transformation_reference)
+
+1. Seperate the image from campground schema to make a virtual for image.
+2. Create a virtual to make our thumbnail using url api from cloudinary.
+3. Use the virtual thumbnail in edit form to get thumbnail images from cloudinary
+
+models/campgrounds.js
+
+```javascript
+// #1
+const ImageSchema = new Schema({
+  url: String,
+  filename: String,
+});
+
+// #2
+ImageSchema.virtual("thumbnail").get(function () {
+  return this.url.replace("/upload", "/upload/w_200");
+});
+
+const CampgroundSchema = new Schema({
+  ...
+  // #1
+  images: [ImageSchema],
+  ...
+});
+```
+
+```html
+<!-- #3 -->
+<img src="<%= img.thumbnail %>" class="img-thumbnail" />
+```
 
 ### **Errors during development**
 
