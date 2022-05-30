@@ -3056,10 +3056,13 @@ const CampgroundSchema = new Schema({
 
 <br>
 
-[mapbox-sdk full documentation](https://github.com/mapbox/mapbox-sdk-js/blob/HEAD/docs/services.md)
+[mapbox-sdk full documentation (all services)](https://github.com/mapbox/mapbox-sdk-js/blob/HEAD/docs/services.md)
 
 1. Create MAPBOX account
 2. Copy the default access token and place it in the .env under MAPBOX_TOKEN.
+3. Install mapbox sdk for node
+   > npm i @mapbox/mapbox-sdk
+4. [Get lat + long using mapbox forward geocoding](#geocoding)
 
 #### Geocoding
 
@@ -3069,12 +3072,40 @@ const CampgroundSchema = new Schema({
 
 [mapbox-sdk Geocoding doc](https://github.com/mapbox/mapbox-sdk-js/blob/HEAD/docs/services.md#geocoding)
 
-1.  Install mapbox sdk for node
-    > npm i @mapbox/mapbox-sdk
-2.  Import geocoding
+Note: There are multiple services and we are just using geocoding services. You can import require services just like geocoding.
+
+1.  Import geocoding
+2.  Import mapbox token
+3.  Initiate mapbox geocoding service by setting valid token
+    > geocoding service(geocoder) has 2 methods, **forward** and reverse geocode.
+4.  Brief example of getting lat + long from geocoding.
+    - forwardgeocode has many params but the query and limits are necessary(Look up the doc.)
+    - We need to send the data for mapbox to geocode
+    - Coordinates(lat, long) are located inside the body > features[0] still an array even tho we only give 1 to limit, > geometry > coordiantes.
+
+controllers/campgrounds.js
 
 ```javascript
+// #1
 const mbxGeocoding = require("@mapbox/mapbox-sdk/services/geocoding");
+// #2
+const mbxToken = process.env.MAPBOX_TOKEN;
+// #3
+const geocoder = mbxGeocoding({ accessToken: mbxToken });
+
+// #4
+module.exports.createCampground = async (req, res, next) => {
+  const geoData = await geocoder
+    // #4.1
+    .forwardGeocode({
+      query: "Yosemite, CA",
+      limit: 1,
+    })
+    // #4.2
+    .send();
+  // #4.3
+  console.log(geoData.body.features[0].geometry.coordinates);
+};
 ```
 
 ---
