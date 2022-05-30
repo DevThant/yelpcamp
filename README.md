@@ -30,7 +30,8 @@
     - [Add image upload to campground edit](#adding-upload-to-edit-page)
     - [Delete Images from campground (edit/update)](#delete-images)
     - [Display Image with thumbnail using cloudinary api and virtual](#image-thumbnail)
-15. [**Errors during development**](#errors-during-development)
+15. [Adding Maps](#adding-maps)
+16. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -3046,6 +3047,37 @@ const CampgroundSchema = new Schema({
 <!-- #3 -->
 <img src="<%= img.thumbnail %>" class="img-thumbnail" />
 ```
+
+---
+
+### Adding Maps
+
+##### [Start](#)
+
+<br>
+
+[mapbox-sdk full documentation](https://github.com/mapbox/mapbox-sdk-js/blob/HEAD/docs/services.md)
+
+1. Create MAPBOX account
+2. Copy the default access token and place it in the .env under MAPBOX_TOKEN.
+
+#### Geocoding
+
+##### [Start](#) / [Adding Maps](#adding-maps)
+
+<br>
+
+[mapbox-sdk Geocoding doc](https://github.com/mapbox/mapbox-sdk-js/blob/HEAD/docs/services.md#geocoding)
+
+1.  Install mapbox sdk for node
+    > npm i @mapbox/mapbox-sdk
+2.  Import geocoding
+
+```javascript
+const mbxGeocoding = require("@mapbox/mapbox-sdk/services/geocoding");
+```
+
+---
 
 ### **Errors during development**
 
