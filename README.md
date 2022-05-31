@@ -3063,6 +3063,7 @@ const CampgroundSchema = new Schema({
 3. Install mapbox sdk for node
    > npm i @mapbox/mapbox-sdk
 4. [Get lat + long using mapbox forward geocoding](#geocoding)
+5. [Render Map on show page](#render-map-on-show-page)
 
 #### Geocoding
 
@@ -3081,7 +3082,7 @@ Note: There are multiple services and we are just using geocoding services. You 
 4.  Brief example of getting lat + long from geocoding.
     - forwardgeocode has many params but the query and limits are necessary(Look up the doc.)
     - We need to send the data for mapbox to geocode
-    - Coordinates(lat, long) are located inside the body > features[0] still an array even tho we only give 1 to limit, > geometry > coordiantes.
+    - Coordinates(lat, long) are located inside the geometry.
 
 controllers/campgrounds.js
 
@@ -3106,6 +3107,143 @@ module.exports.createCampground = async (req, res, next) => {
   // #4.3
   console.log(geoData.body.features[0].geometry.coordinates);
 };
+```
+
+5. We will store the geometry that we get from 4.3 in campground, but the location data must be exactly like this geoJSON.
+
+```json
+// #5
+ location: {
+   type: "Point",
+   coordinates: [long, lat]
+ }
+ // #4.3 ,geometry not coordiantes
+ geometry: {
+   type: "Point",
+   coordinates: [long, lat]
+ }
+
+```
+
+6. Adding geometry to our campground model
+
+/models/campground.js
+
+```javascript
+const CampgroundSchema = new Schema({
+  ...
+  // #6
+  geometry: {
+    type: {
+      type: String,
+      enum: ["Point"], // Must be "Point", nothing else
+      required: true,
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+    },
+  },
+...
+});
+```
+
+8. Get geoData from the req.body.campground.location
+9. Saving geometry data to the campground
+
+/controllers/campground.js
+
+```javascript
+module.exports.createCampground = async (req, res, next) => {
+  // #8
+  const geoData = await geocoder
+    .forwardGeocode({
+      query: req.body.campground.location,
+      limit: 1,
+    })
+    .send();
+  const campground = new Campground(req.body.campground);
+  // #8
+  campground.geometry = geoData.features[0].geometry;
+...
+}
+```
+
+---
+
+#### Render Map On Show Page
+
+##### [Start](#) / [Adding Maps](#adding-maps)
+
+<br>
+
+Follow the quickstart [docs](https://docs.mapbox.com/mapbox-gl-js/guides/install/#quickstart)
+
+1. Put the js and css url in boilerplate from doc.
+2. Copy the map and script from doc and place them in the show page.
+
+views/layouts/boilerplate.ejs
+
+```html
+<!-- #1 -->
+<head>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.js"></script>
+  <link
+    href="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.css"
+    rel="stylesheet"
+  />
+</head>
+```
+
+views/campgrounds/show.ejs
+
+```html
+<!-- #2 -->
+<div class="card">
+  <div id="map" style="width: 400px; height: 300px;"></div>
+  ...
+</div>
+
+<script>
+  mapboxgl.accessToken =
+    "pk.eyJ1IjoicHN0aGFudCIsImEiOiJjbDNyMW90dzcxZG1hM2JwN3huMjVqYnJ6In0.cwJp2Bqdn683sTEIJZKf8Q";
+  const map = new mapboxgl.Map({
+    container: "map", // container ID
+    style: "mapbox://styles/mapbox/streets-v11", // style URL
+    center: [-74.5, 40], // starting position [lng, lat]
+    zoom: 9, // starting zoom
+  });
+</script>
+```
+
+3. Move the script out of show page and make a seperate js file for it
+4. Set the token in showPage by accessing the process.env.MAPBOX_TOKEN with the ejs and call the map script
+
+public/javascripts/showPageMap.js
+
+```javascript
+// #3 map script
+mapboxgl.accessToken = mbxToken;
+const map = new mapboxgl.Map({
+  container: "map", // container ID
+  style: "mapbox://styles/mapbox/streets-v11", // style URL
+  center: [-74.5, 40], // starting position [lng, lat]
+  zoom: 9, // starting zoom
+});
+```
+
+views/campgrounds/show.ejs
+
+```html
+<!-- #4 -->
+<script>
+  const mbxToken = "<%- process.env.MAPBOX_TOKEN %>";
+</script>
+
+<div class="container">...</div>
+
+<!-- #4 -->
+<script src="javascripts/showPageMap.js"></script>
 ```
 
 ---

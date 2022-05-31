@@ -1,11 +1,15 @@
 <% layout('layouts/boilerplate') %>
 <link rel="stylesheet" href="/stylesheets/stars.css" />
+<script>
+  const mbxToken = '<%- process.env.MAPBOX_TOKEN %>'
+</script>
 
 <div class="container">
   <div class="row">
     <div class="col-6">
       <div class="row">
         <div class="card">
+          <div id='map' style='width: 400px; height: 300px;'></div>
           <div
           id="campgroundCarousel"
           class="carousel slide"
@@ -179,3 +183,6 @@
     </div>
   </div>
 </div>
+
+
+<script src="javascripts/showPageMap.js"></script>
