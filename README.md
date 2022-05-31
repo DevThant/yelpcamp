@@ -3516,3 +3516,7 @@ You could also look into using the Cloudinary API to resize large images after u
 Please let us know if you have any other questions!
 
 You can also discuss these topics in the course community Discord server: https://discord.gg/CUga7jX
+
+#### TODOs
+
+<!-- TODO: Mapbox token not working with seperate script  -->
