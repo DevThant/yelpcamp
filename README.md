@@ -3217,7 +3217,7 @@ views/campgrounds/show.ejs
 ```
 
 3. Move the script out of show page and make a seperate js file for it
-4. Set the token in showPage by accessing the process.env.MAPBOX_TOKEN with the ejs and call the map script
+4. Set the token in showPage with the ejs and link the map script
 
 public/javascripts/showPageMap.js
 
@@ -3244,6 +3244,53 @@ views/campgrounds/show.ejs
 
 <!-- #4 -->
 <script src="javascripts/showPageMap.js"></script>
+```
+
+5. Add marker to the map ([docs](https://docs.mapbox.com/mapbox-gl-js/example/add-a-marker/))
+
+public/javascripts/showPageMap.js
+
+```javascript
+mapboxgl.accessToken = mbxToken;
+const map = new mapboxgl.Map({
+  container: "map",
+  style: "mapbox://styles/mapbox/streets-v11",
+  center: [-74.5, 40],
+});
+
+// #5
+new mapboxgl.Marker().setLngLat([-74.5, 40]).addTo(map);
+```
+
+6. Add campground variable which stores all the campground information with ejs, to later use in our scripts
+   > We have to convert the whole campground into JSON, beacuase of the properties like id (123abc456fasd) which is neither string nor number. Otherwise we will get an error.
+
+/views/campgrounds/show.ejs
+
+```javascript
+<script>
+  const mbxToken = '<%- process.env.MAPBOX_TOKEN %>'
+  // #6 you can safely ignore the error from vscode.
+  const campground = <%-JSON.stringify(campground)%>
+</script>
+```
+
+7. Use the campground that we define in our show.ejs to get the coordinates in showPageMap.js
+   > Display the marker and center the map to our campground location
+
+public/javascripts/showPageMap.js
+
+```javascript
+mapboxgl.accessToken = mbxToken;
+const map = new mapboxgl.Map({
+  container: "map",
+  style: "mapbox://styles/mapbox/streets-v11",
+  // #7
+  center: campground.geometry.coordinates,
+  zoom: 9,
+});
+// #7
+new mapboxgl.Marker().setLngLat(campground.geometry.coordinates).addTo(map);
 ```
 
 ---
@@ -3519,4 +3566,4 @@ You can also discuss these topics in the course community Discord server: https:
 
 #### TODOs
 
-<!-- TODO: Mapbox token not working with seperate script  -->
+<!-- TODO: Mapbox token not working with seperate script   -->

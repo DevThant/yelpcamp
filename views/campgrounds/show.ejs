@@ -1,8 +1,7 @@
 <% layout('layouts/boilerplate') %>
 <link rel="stylesheet" href="/stylesheets/stars.css" />
-<script>
-  const mbxToken = '<%- process.env.MAPBOX_TOKEN %>'
-</script>
+
+
 
 <div class="container">
   <div class="row">
@@ -184,5 +183,10 @@
   </div>
 </div>
 
+<script>
+  const mbxToken = '<%- process.env.MAPBOX_TOKEN %>'
+  const campground = <%-JSON.stringify(campground)%>
+</script>
 
-<script src="javascripts/showPageMap.js"></script>
+
+<script src="/javascripts/showPageMap.js"></script>
