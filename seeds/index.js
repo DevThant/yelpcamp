@@ -20,14 +20,14 @@ const seedDB = async () => {
       author: "628f4436f8802db7db537561",
       location: `${cities[r1000].city}, ${cities[r1000].state}`,
       title: `${sample(descriptors)} ${sample(places)}`,
+      geometry: {
+        type: "Point",
+        coordinates: [cities[r1000].longitude, cities[r1000].latitude],
+      },
       images: [
         {
           url: "https://res.cloudinary.com/psthant/image/upload/v1653570486/YelpCamp/uhawqscqdz0beli2cqei.png",
           filename: "YelpCamp/uhawqscqdz0beli2cqei",
-        },
-        {
-          url: "https://res.cloudinary.com/psthant/image/upload/v1653570482/YelpCamp/afs6eqyx6py00i38bf4i.png",
-          filename: "YelpCamp/afs6eqyx6py00i38bf4i",
         },
       ],
       description:

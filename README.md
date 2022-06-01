@@ -3293,6 +3293,20 @@ const map = new mapboxgl.Map({
 new mapboxgl.Marker().setLngLat(campground.geometry.coordinates).addTo(map);
 ```
 
+8. Add popup to the marker ([docs](https://docs.mapbox.com/mapbox-gl-js/example/set-popup/))
+
+public/javascripts/showPageMap.js
+
+```javascript
+const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+  `<h5>${campground.title}</h5>`
+);
+new mapboxgl.Marker()
+  .setLngLat(campground.geometry.coordinates)
+  .setPopup(popup)
+  .addTo(map);
+```
+
 ---
 
 ### **Errors during development**
