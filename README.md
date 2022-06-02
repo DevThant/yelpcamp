@@ -30,7 +30,7 @@
     - [Add image upload to campground edit](#adding-upload-to-edit-page)
     - [Delete Images from campground (edit/update)](#delete-images)
     - [Display Image with thumbnail using cloudinary api and virtual](#image-thumbnail)
-15. [Adding Maps](#adding-maps)
+15. [**Adding Maps**](#adding-maps)
 16. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
@@ -3064,6 +3064,7 @@ const CampgroundSchema = new Schema({
    > npm i @mapbox/mapbox-sdk
 4. [Get lat + long using mapbox forward geocoding](#geocoding)
 5. [Render Map on show page](#render-map-on-show-page)
+6. [Cluster Map](#cluster-map)
 
 #### Geocoding
 
@@ -3305,6 +3306,236 @@ new mapboxgl.Marker()
   .setLngLat(campground.geometry.coordinates)
   .setPopup(popup)
   .addTo(map);
+```
+
+---
+
+### **Cluster Map**
+
+##### [Start](#) / [Adding Maps](#adding-maps)
+
+<br>
+
+1. Store token and all campgrounds data from the index.ejs
+   - We have to convert the campgrounds data to JSON String, since mapbox is expecting GeoJSON(GSON) data.
+   - And notice that we put all our campgrounds into the new property called features. If you look at the data mapbox is using, you can see the map is using geojson and it looks into features of that json and visualize the data on map. So we have to make our data identical to this.
+
+campgronds/index.ejs
+
+```html
+<!-- #1 -->
+<script>
+  const mbxToken = "<%-process.env.MAPBOX_TOKEN%>";
+  // #1.1                 #1.2
+  const campgrounds = { features: <%- JSON.stringify(campgrounds)%> };
+</script>
+<script src="/javascripts/clusterMap.js"></script>
+```
+
+```json
+{
+  // These parts are not mandatory
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" }
+  },
+  // 1.2 (necessary for the clusters to work)
+  "features": {
+    "type": "Feature",
+    "properties": {
+      campgrounds data (id, author, images, ...etc)
+    },
+    "geometry": { "type": "Point", "coordinates": [-151.5129, 63.1016, 0.0] }
+  }
+}
+```
+
+2. Get token from ejs
+
+javascripts/clusterMap.js
+
+```javascript
+// #2
+mapboxgl.accessToken = mbxToken;
+const map = new mapboxgl.Map({
+  container: "map",
+  style: "mapbox://styles/mapbox/dark-v10",
+  center: [-103.5917, 40.6699],
+  zoom: 3,
+});
+```
+
+3. Copy the basic cluster map from [here](https://docs.mapbox.com/mapbox-gl-js/example/cluster/)
+4. Put our campgrounds data ("`campgrounds`" from ejs) inside the data which is used by map to visualize our data into clusters. (check 1.2 again if not clear)
+   javascripts/clusterMap.js
+5. Point the data source to our campgrounds(#4) in each functions of the maps.
+6. For the popup (when click on single camp) to work we need another property called("`properties`").
+   - Normally our campgrounds data should look like this for everything to work with this cluster map.
+   ```json
+   {
+     features: {
+       properties: {
+         campgrounds data(id, author, images, ...etc)
+       }
+       geometry: {
+         ...
+       }
+     }
+   }
+   ```
+   - For this to work we will add a virtual to the campground schema (#7)
+
+```javascript
+// #3
+map.on("load", () => {
+  // Add a new source from our GeoJSON data and
+  // set the 'cluster' option to true. GL-JS will
+  // add the point_count property to your source data.
+  map.addSource("campgrounds", {
+    type: "geojson",
+    // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
+    // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
+    // #4
+    data: campgrounds,
+    cluster: true,
+    clusterMaxZoom: 14, // Max zoom to cluster points on
+    clusterRadius: 50, // Radius of each cluster when clustering points (defaults to 50)
+  });
+
+  map.addLayer({
+    id: "clusters",
+    type: "circle",
+    // #5
+    source: "campgrounds",
+    filter: ["has", "point_count"],
+    paint: {
+      // Use step expressions (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-step)
+      // with three steps to implement three types of circles:
+      //   * Blue, 20px circles when point count is less than 100
+      //   * Yellow, 30px circles when point count is between 100 and 750
+      //   * Pink, 40px circles when point count is greater than or equal to 750
+      "circle-color": [
+        "step",
+        ["get", "point_count"],
+        "#64dfdf",
+        50,
+        "#fca311",
+        100,
+        "#ff7b00",
+        399,
+        "#e01e37",
+      ],
+      "circle-radius": [
+        "step",
+        ["get", "point_count"],
+        10,
+        10,
+        20,
+        50,
+        30,
+        100,
+        40,
+      ],
+    },
+  });
+
+  map.addLayer({
+    id: "cluster-count",
+    type: "symbol",
+    // #5
+    source: "campgrounds",
+    filter: ["has", "point_count"],
+    layout: {
+      "text-field": "{point_count_abbreviated}",
+      "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+      "text-size": 12,
+    },
+  });
+
+  map.addLayer({
+    id: "unclustered-point",
+    type: "circle",
+    // #5
+    source: "campgrounds",
+    filter: ["!", ["has", "point_count"]],
+    paint: {
+      "circle-color": "#70e000",
+      "circle-radius": 4,
+      "circle-stroke-width": 1.5,
+      "circle-stroke-color": "#fff",
+    },
+  });
+
+  // inspect a cluster on click
+  map.on("click", "clusters", (e) => {
+    const features = map.queryRenderedFeatures(e.point, {
+      layers: ["clusters"],
+    });
+    const clusterId = features[0].properties.cluster_id;
+    map
+      .getSource("campgrounds")
+      .getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+
+        map.easeTo({
+          center: features[0].geometry.coordinates,
+          zoom: zoom,
+        });
+      });
+  });
+
+  // When a click event occurs on a feature in
+  // the unclustered-point layer, open a popup at
+  // the location of the feature, with
+  // description HTML from its properties.
+  map.on("click", "unclustered-point", (e) => {
+    const coordinates = e.features[0].geometry.coordinates.slice();
+    const mag = e.features[0].properties.mag;
+    const tsunami = e.features[0].properties.tsunami === 1 ? "yes" : "no";
+
+    // Ensure that if the map is zoomed out such that
+    // multiple copies of the feature are visible, the
+    // popup appears over the copy being pointed to.
+    while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+      coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+    }
+
+    new mapboxgl.Popup()
+      .setLngLat(coordinates)
+      .setHTML(`magnitude: ${mag}<br>Was there a tsunami?: ${tsunami}`)
+      .addTo(map);
+  });
+
+  map.on("mouseenter", "clusters", () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+  map.on("mouseleave", "clusters", () => {
+    map.getCanvas().style.cursor = "";
+  });
+});
+```
+
+7. Adding virtual to campground schema
+8. Virtuals are not included in the JSON if we stringify the campground data. So we have to add an option, which tells mongo to allow virtuals in json if stringify. (#1.1, #1.2)
+
+models/campground.js
+
+```javascript
+// #8
+const opts = { toJSON: { virtuals: true } };
+
+const CampgroundSchema = new Schema(
+  {
+   ...},
+   // 8
+  opts
+);
+
+// #7
+CampgroundSchema.virtual("properties.popUpMarkUp").get(function () {
+  return `<a href= "/campgrounds/${this._id}" >${this.title}</>`;
+});
 ```
 
 ---

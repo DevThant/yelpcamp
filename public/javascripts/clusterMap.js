@@ -34,13 +34,25 @@ map.on("load", () => {
       "circle-color": [
         "step",
         ["get", "point_count"],
-        "#51bbd6",
+        "#64dfdf",
+        50,
+        "#fca311",
         100,
-        "#f1f075",
-        750,
-        "#f28cb1",
+        "#ff7b00",
+        399,
+        "#e01e37",
       ],
-      "circle-radius": ["step", ["get", "point_count"], 20, 100, 30, 750, 40],
+      "circle-radius": [
+        "step",
+        ["get", "point_count"],
+        10,
+        10,
+        20,
+        50,
+        30,
+        100,
+        40,
+      ],
     },
   });
 
@@ -62,9 +74,9 @@ map.on("load", () => {
     source: "campgrounds",
     filter: ["!", ["has", "point_count"]],
     paint: {
-      "circle-color": "#11b4da",
-      "circle-radius": 4.5,
-      "circle-stroke-width": 1,
+      "circle-color": "#70e000",
+      "circle-radius": 4,
+      "circle-stroke-width": 1.5,
       "circle-stroke-color": "#fff",
     },
   });
@@ -93,8 +105,7 @@ map.on("load", () => {
   // description HTML from its properties.
   map.on("click", "unclustered-point", (e) => {
     const coordinates = e.features[0].geometry.coordinates.slice();
-    const mag = e.features[0].properties.mag;
-    const tsunami = e.features[0].properties.tsunami === 1 ? "yes" : "no";
+    const { popUpMarkUp } = e.features[0].properties;
 
     // Ensure that if the map is zoomed out such that
     // multiple copies of the feature are visible, the
@@ -103,10 +114,7 @@ map.on("load", () => {
       coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
     }
 
-    new mapboxgl.Popup()
-      .setLngLat(coordinates)
-      .setHTML(`magnitude: ${mag}<br>Was there a tsunami?: ${tsunami}`)
-      .addTo(map);
+    new mapboxgl.Popup().setLngLat(coordinates).setHTML(popUpMarkUp).addTo(map);
   });
 
   map.on("mouseenter", "clusters", () => {
