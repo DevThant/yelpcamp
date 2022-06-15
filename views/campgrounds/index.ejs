@@ -1,55 +1,51 @@
 <% layout('layouts/boilerplate') %>
 
-  <div id="cluster-map"></div>
+<div id="cluster-map"></div>
 
-  <div class="container">
-    <div class="row justify-content-between">
-      <div class="col-md-4">
-        <h1 class="display-6">All Campgrounds</h1>
-      </div>
-      <div class="col-md-2">
-        <a href="/campgrounds/new" class="btn btn-primary">Add Campground</a>
+<div class="container">
+  <div class="row justify-content-between">
+    <div class="col-md-4">
+      <h1 class="display-6">All Campgrounds</h1>
+    </div>
+    <div class="col-md-2">
+      <a href="/campgrounds/new" class="btn btn-primary">Add Campground</a>
+    </div>
+  </div>
+</div>
+
+<% for(let c of campgrounds) {%>
+<div class="card my-2">
+  <div class="row">
+    <div class="col-md-4">
+      <% if(c.images.length) {%>
+      <img src="<%= c.images[0].url %>" alt="" class="img-fluid" />
+      <% }else{ %>
+      <img
+        src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1174&q=80"
+        alt="Default Image"
+        class="img-fluid"
+      />
+
+      <% } %>
+    </div>
+    <div class="col-md-8">
+      <div class="card-body">
+        <h5 class="card-title"><%= c.title %></h5>
+        <small class="text-muted"> <%= c.location %> </small>
+        <p class="card-text"><%= c.description %></p>
+
+        <p class="text-muted"><%= c.price %> USD</p>
+        <a href="/campgrounds/<%= c.id %>" class="btn btn-primary"
+          >View Details</a
+        >
       </div>
     </div>
   </div>
+</div>
+<% } %>
 
-  <% for(let c of campgrounds) {%>
-    <div class="card my-2">
-      <div class="row">
-        <div class="col-md-4">
-          <% if(c.images.length) {%>
-            <img src="<%= c.images[0].url %>" alt="" class="img-fluid" />
-            <% }else{ %>
-              <img
-                src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1174&q=80"
-                alt="Default Image" class="img-fluid" />
-
-              <% } %>
-        </div>
-        <div class="col-md-8">
-          <div class="card-body">
-            <h5 class="card-title">
-              <%= c.title %>
-            </h5>
-            <small class="text-muted">
-              <%= c.location %>
-            </small>
-            <p class="card-text">
-              <%= c.description %>
-            </p>
-
-            <p class="text-muted">
-              <%= c.price %> USD
-            </p>
-            <a href="/campgrounds/<%= c.id %>" class="btn btn-primary">View Details</a>
-          </div>
-        </div>
-      </div>
-    </div>
-    <% } %>
-
-      <script>
-        const mbxToken = "<%-process.env.MAPBOX_TOKEN%>";
-        const campgrounds = { features: <%- JSON.stringify(campgrounds) %> };
-      </script>
-      <script src="/javascripts/clusterMap.js"></script>
+<script>
+  const mbxToken = "<%-process.env.MAPBOX_TOKEN%>";
+  const campgrounds = { features: <%- JSON.stringify(campgrounds) %> };
+</script>
+<script src="/javascripts/clusterMap.js"></script>
