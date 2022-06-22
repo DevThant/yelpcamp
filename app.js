@@ -39,6 +39,8 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: true,
   cookie: {
+    //! Uncomment this when deploy to server. (server must be https, otherwise don;t)
+    // secure: true,
     expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
     maxAge: 1000 * 60 * 60 * 24 * 7,
     httpOnly: true,

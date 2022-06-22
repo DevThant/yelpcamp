@@ -3529,8 +3529,8 @@ CampgroundSchema.virtual("properties.popUpMarkUp").get(function () {
 
 <br>
 
-1. Mongo SQL injection
-2.
+1. [Mongo SQL injection](#mongo-sql-injection)
+2. [Sanitizing HTML]()
 
 ---
 
@@ -3556,6 +3556,71 @@ const mongoSanitize = require("express-mongo-sanitize");
 ...
 // #2
 app.use(mongoSanitize());
+```
+
+---
+
+#### Sanitizing HTML
+
+##### [Start](#) / [Basic Security](#basic-security)
+
+<br>
+
+This will prevent users from putting html tags and attributes into the input.
+[sanitize-html](https://www.npmjs.com/package/sanitize-html)
+
+1. Import
+2. We will use sanitize-html as extension module on the Joi
+3. Use the module on string based inputs.
+
+Joischemas.js
+
+```javascript
+const BaseJoi = require("joi");
+// #1
+const sanitizeHtml = require("sanitize-html");
+
+// #2
+const extension = (joi) => ({
+  type: "string",
+  base: joi.string(),
+  messages: {
+    "string.escapeHTML": "{{#label}} must not include HTML!",
+  },
+  rules: {
+    escapeHTML: {
+      validate(value, helpers) {
+        const clean = sanitizeHtml(value, {
+          allowedTags: [],
+          allowedAttributes: {},
+        });
+        if (clean !== value)
+          return helpers.error("string.escapeHTML", { value });
+        return clean;
+      },
+    },
+  },
+});
+// #2
+const Joi = BaseJoi.extend(extension);
+
+module.exports.campgroundSchema = Joi.object({
+  campground: Joi.object({
+    // #3
+    title: Joi.string().required().escapeHTML(),
+    price: Joi.number().required().min(0),
+    location: Joi.string().required().escapeHTML(),
+    description: Joi.string().required().escapeHTML(),
+  }).required(),
+  deleteImages: Joi.array(),
+});
+
+module.exports.reviewSchema = Joi.object({
+  review: Joi.object({
+    rating: Joi.number().required().min(1).max(5),
+    body: Joi.string().required().escapeHTML(),
+  }).required(),
+});
 ```
 
 ---
