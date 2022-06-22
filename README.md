@@ -11,6 +11,7 @@
 9. [**Session**](#session)
    - [Setting up Session](#setting-up-session)
    - [Setting up Flash](#setting-up-flash)
+   - [Setting up Mongo Store Session](#Mongo-store)
 10. [**Authentication**](#authentication)
     - [User model with Passport Local Mongoose](#passport-local-mongoose)
     - [Register](#register)
@@ -1337,8 +1338,12 @@ public/javascripts/validateForm.js
 
 We need session :
 
-- [To use flash messages, when user do CRUD on campgrounds and reviews, login and logout, gretting, ...etc.](#setting-up-flash)
+- To use [flash messages](#setting-up-flash), when user do CRUD on campgrounds and reviews, login and logout, gretting, ...etc.
 - For users authentications.
+
+1. [Setting Session](#setting-up-session)
+2. [Setting Flash](#setting-up-flash)
+3. [Setting Mongo Store Session (FOR PRODUCTION)](#mongo-store)
 
 ---
 
@@ -1549,6 +1554,47 @@ router.get(
     res.render("campgrounds/show", { campground });
   })
 );
+```
+
+---
+
+### Mongo Store
+
+##### [Start](#)/ [Session](#session)
+
+Mongodb session store for the production cookies.
+
+[connect-mongo](https://www.npmjs.com/package/connect-mongo)
+
+    npm i connect-mongo
+
+1. Import
+2. Put the mongostore inside options(config) of session
+
+app.js
+
+```javascript
+const MongoStore = require("connect-mongo");
+
+...
+
+const sessionConfig = {
+  secret: "donotstoresecretlikethis",
+  // #2
+  store: MongoStore.create({
+    mongoUrl: "mongodb://localhost:27017/yelpcamp",
+    touchAfter: 24 * 3600, // time period in seconds for 24hours
+  }),
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    //! Uncomment this when deploy to server. (server must be https, otherwise don;t)
+    // secure: true,
+    expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // time period in miliseconds
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    httpOnly: true,
+  },
+};
 ```
 
 ---
