@@ -11,6 +11,7 @@ const session = require("express-session");
 const flash = require("connect-flash");
 const passport = require("passport");
 const localStrategy = require("passport-local");
+const mongoSanitize = require("express-mongo-sanitize");
 
 //Models
 const User = require("./models/user");
@@ -63,6 +64,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(methodOverride("_method"));
+app.use(mongoSanitize());
 
 // --------------------Routes--------------------
 // flash middleware

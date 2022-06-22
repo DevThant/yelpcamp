@@ -31,7 +31,8 @@
     - [Delete Images from campground (edit/update)](#delete-images)
     - [Display Image with thumbnail using cloudinary api and virtual](#image-thumbnail)
 15. [**Adding Maps**](#adding-maps)
-16. [**Errors during development**](#errors-during-development)
+16. [**Basic and common security**](#basic-security)
+17. [**Errors during development**](#errors-during-development)
 
 ### **Basic Setup**
 
@@ -3389,13 +3390,8 @@ const map = new mapboxgl.Map({
 ```javascript
 // #3
 map.on("load", () => {
-  // Add a new source from our GeoJSON data and
-  // set the 'cluster' option to true. GL-JS will
-  // add the point_count property to your source data.
   map.addSource("campgrounds", {
     type: "geojson",
-    // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
-    // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
     // #4
     data: campgrounds,
     cluster: true,
@@ -3410,11 +3406,6 @@ map.on("load", () => {
     source: "campgrounds",
     filter: ["has", "point_count"],
     paint: {
-      // Use step expressions (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-step)
-      // with three steps to implement three types of circles:
-      //   * Blue, 20px circles when point count is less than 100
-      //   * Yellow, 30px circles when point count is between 100 and 750
-      //   * Pink, 40px circles when point count is greater than or equal to 750
       "circle-color": [
         "step",
         ["get", "point_count"],
@@ -3485,18 +3476,10 @@ map.on("load", () => {
       });
   });
 
-  // When a click event occurs on a feature in
-  // the unclustered-point layer, open a popup at
-  // the location of the feature, with
-  // description HTML from its properties.
   map.on("click", "unclustered-point", (e) => {
     const coordinates = e.features[0].geometry.coordinates.slice();
     const mag = e.features[0].properties.mag;
     const tsunami = e.features[0].properties.tsunami === 1 ? "yes" : "no";
-
-    // Ensure that if the map is zoomed out such that
-    // multiple copies of the feature are visible, the
-    // popup appears over the copy being pointed to.
     while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
       coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
     }
@@ -3536,6 +3519,43 @@ const CampgroundSchema = new Schema(
 CampgroundSchema.virtual("properties.popUpMarkUp").get(function () {
   return `<a href= "/campgrounds/${this._id}" >${this.title}</>`;
 });
+```
+
+---
+
+### **Basic Security**
+
+##### [Start](#)
+
+<br>
+
+1. Mongo SQL injection
+2.
+
+---
+
+#### Mongo SQL injection
+
+##### [Start](#) / [Basic Security](#basic-security)
+
+<br>
+
+This will prevent insertion of $ or . in queries and params from client side.
+[express-mongo-sanitize](https://www.npmjs.com/package/express-mongo-sanitize)
+
+    npm i express-mongo-sanitize
+
+1. Import
+2. Use mongoSanitize() middleware on every routes.
+
+app.js
+
+```javascript
+// #1
+const mongoSanitize = require("express-mongo-sanitize");
+...
+// #2
+app.use(mongoSanitize());
 ```
 
 ---

@@ -32,7 +32,9 @@ module.exports.login = async (req, res) => {
 };
 
 module.exports.logout = (req, res) => {
-  req.logout();
+  req.logout((err) => {
+    if (err) return next(err);
+  });
   req.flash("success", "Goodbye");
   res.redirect("/campgrounds");
 };
