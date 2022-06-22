@@ -3943,3 +3943,9 @@ You can also discuss these topics in the course community Discord server: https:
 #### TODOs
 
 <!-- TODO: Mapbox token not working with seperate script   -->
+
+Heroku :
+
+1. Add start script to package.json
+2. Don't forget to change port
+3. Configure heroku enviroment variable
