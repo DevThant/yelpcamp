@@ -34,7 +34,6 @@ const reviewRoutes = require("./routes/reviews");
 const userRoutes = require("./routes/user");
 
 const app = express();
-const port = 3000;
 
 mongoose
   .connect(db)
@@ -112,4 +111,5 @@ app.use((err, req, res, next) => {
   res.status(statusCode).render("error", { err });
 });
 
+const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`YelpCAMP running on port ${port}`));
