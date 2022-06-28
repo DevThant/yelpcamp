@@ -3681,6 +3681,7 @@ module.exports.reviewSchema = Joi.object({
 2. [TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined](#e2)
 3. [TypeError [ERR_INVALID_ARG_VALUE]: The argument 'id' must be a non-empty string. Received ''](#e3)
 4. [NO ERROR JUST BLANK, during image upload to cloudinary with multer middleware](#e4)
+5. [`req.body` is undefined in these routes(post/patch/put)](#e5)
 
 #### E1
 
@@ -3917,6 +3918,46 @@ const upload = multer({ storage });
 ```
 
 ---
+
+#### E5
+
+##### [Start](#) / [More Errors](#errors-during-development)
+
+<br>
+
+Happened when making post/put/patch request from the form to express
+
+    > req.body is undefined (even with json and body parser // or maybe you forget to add them in main app.js)
+
+**Cause:**
+
+This case is really tricky, when you try to upload a file using the form-data format (your form content type is multipart/form-data) without handling the form-data in your route, you'll get undefined req.body.
+
+```javascript
+router.post("/", async (req, res) => {
+  console.log(req.body); //undefined
+  ...
+}
+router.patch("/:id", async (req, res) => {
+  console.log(req.body); //undefined
+  ...
+}
+```
+
+**Fix:**
+
+Use mutler middleware to handle the multipart/form-data in your routes.
+
+```javascript
+router.post("/", upload.array("blog[image]"), async (req, res) => {
+  console.log(req.body); // {data}
+  ...
+}
+router.patch("/:id", upload.array("blog[image]"), async (req, res) => {
+  console.log(req.body); // {data}
+  ...
+}
+```
 
 ### Tips
 
