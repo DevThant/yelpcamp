@@ -44,8 +44,23 @@ const CampgroundSchema = new Schema(
   opts
 );
 
+// CampgroundSchema.virtual("properties.popUpMarkUp").get(function () {
+//   return `<a href= "/campgrounds/${this._id}" >${this.title}</>`;
+// });
+
 CampgroundSchema.virtual("properties.popUpMarkUp").get(function () {
-  return `<a href= "/campgrounds/${this._id}" >${this.title}</>`;
+  return `<div class="card" style="width: 12rem">
+  <img src="${this.images[0].url}" class="card-img-top" alt="${this.title}" />
+  <div class="card-body">
+    <h5 class="card-title">${this.title}</h5>
+    <p class="card-text">$ ${this.price} per night</p>
+    <a href="/campgrounds/${this._id}" class="btn btn-primary btn-sm"
+      >See Campground</a
+    >
+  </div>
+</div>
+
+`;
 });
 
 CampgroundSchema.post("findOneAndDelete", async function (doc) {

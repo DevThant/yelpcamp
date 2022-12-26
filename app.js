@@ -1,14 +1,14 @@
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
-const db =
-  process.env.NODE_ENV !== "production"
-    ? "mongodb://localhost:27017/yelpcamp"
-    : process.env.MONGO_URL;
+// const db =
+//   process.env.NODE_ENV !== "production"
+//     ? "mongodb://localhost:27017/yelpcamp"
+//     : process.env.MONGO_URL;
 
 // or
 // if no url inside dbUrl use local
-// const db = process.env.MONGO_URL; || "mongodb://localhost:27017/yelpcamp";
+const db = process.env.MONGO_URL || "mongodb://localhost:27017/yelpcamp";
 
 const express = require("express");
 const mongoose = require("mongoose");

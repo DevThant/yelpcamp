@@ -1,23 +1,44 @@
 const mongoose = require("mongoose");
+const User = require("../models/user");
+const users = require("./users");
+const images = require("./images");
 const Campground = require("../models/campground");
 const cities = require("./cities");
-const { places, descriptors } = require("./seedHelpers");
+const { places, descriptors, getUserIds } = require("./seedHelpers");
+const ck = require("ckey");
+
+const db = ck.MONGO_URL;
 
 mongoose
-  .connect("mongodb://localhost:27017/yelpcamp")
+  .connect(db)
   .then(() => {
     console.log("Mongoose Running");
   })
   .catch((error) => console.log(`Connection Error : ${error}`));
 
 const sample = (array) => array[Math.floor(Math.random() * array.length)];
+
+const seedUser = async () => {
+  await User.deleteMany({});
+  users.forEach(async (user) => {
+    const { email, username, password } = user;
+    const newUser = new User({ email, username });
+    await User.register(newUser, password);
+  });
+  console.log("Seeding Finished");
+};
+
 const seedDB = async () => {
+  seedUser();
   await Campground.deleteMany({});
   for (let i = 0; i < 400; i++) {
     const r1000 = Math.floor(Math.random() * 1000);
     const price = Math.floor(Math.random() * 20) + 10;
+    const image = images[Math.floor(Math.random() * images.length)];
+    const allUsers = await getUserIds();
+    const author = allUsers[Math.floor(Math.random() * allUsers.length)];
     const camp = new Campground({
-      author: "628d424b12ec9834243396b6",
+      author,
       location: `${cities[r1000].city}, ${cities[r1000].state}`,
       title: `${sample(descriptors)} ${sample(places)}`,
       geometry: {
@@ -26,8 +47,8 @@ const seedDB = async () => {
       },
       images: [
         {
-          url: "https://res.cloudinary.com/psthant/image/upload/v1653570486/YelpCamp/uhawqscqdz0beli2cqei.png",
-          filename: "YelpCamp/uhawqscqdz0beli2cqei",
+          url: `https://res.cloudinary.com/psthant/image/upload/${image.code}/${image.folder}/${image.filename}`,
+          filename: `${image.folder}/${image.filename}}`,
         },
       ],
       description:
@@ -38,5 +59,7 @@ const seedDB = async () => {
   }
 };
 
-seedDB();
-console.log("Finished");
+seedDB().then(() => {
+  mongoose.connection.close();
+  console.log("Seed Completed");
+});

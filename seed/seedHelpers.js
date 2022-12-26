@@ -1,3 +1,5 @@
+const User = require("../models/user");
+
 module.exports.descriptors = [
   "Forest",
   "Ancient",
@@ -42,3 +44,7 @@ module.exports.places = [
   "Cliffs",
   "Hollow",
 ];
+
+module.exports.getUserIds = async () => {
+  return await User.find({}, "_id");
+};
