@@ -1,12 +1,29 @@
 const { cloudinary } = require("../cloudinary");
 const Campground = require("../models/campground");
+const { queries } = require("../utils/constants");
+const { checkQuery } = require("./campgroundHelpers");
 const mbxGeocoding = require("@mapbox/mapbox-sdk/services/geocoding");
 const mbxToken = process.env.MAPBOX_TOKEN;
 const geocoder = mbxGeocoding({ accessToken: mbxToken });
 
 module.exports.index = async (req, res) => {
-  const campgrounds = await Campground.find({});
-  res.render("campgrounds/index", { campgrounds });
+  // get queries from url
+  const { q, search } = req.query;
+  // if there is a query, use checkQuery to sort the campgrounds
+  if (q) {
+    const campgrounds = await checkQuery(q);
+    res.render("campgrounds/index", { campgrounds, queries });
+  } else if (search) {
+    const campgrounds = await Campground.find({
+      title: { $regex: search, $options: "i" },
+    });
+    res.render("campgrounds/index", { campgrounds, queries });
+  }
+  // if there is no query, just render the campgrounds
+  else {
+    const campgrounds = await Campground.find({});
+    res.render("campgrounds/index", { campgrounds, queries });
+  }
 };
 
 module.exports.renderNewForm = (req, res) => {

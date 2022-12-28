@@ -2,17 +2,60 @@
 
 <div id="cluster-map"></div>
 
-<div class="container mt-3">
+<div class="container mt-3 mb-3">
   <div class="row justify-content-between">
-    <div class="col-md-4">
+    <div class="col-md-4 p-0">
       <h1 class="display-6">All Campgrounds</h1>
     </div>
+    <% if(loggedInUser){ %>
     <div class="col-md-2">
       <a href="/campgrounds/new" class="btn btn-primary">Add Campground</a>
     </div>
+    <% } %>
   </div>
 </div>
+<div
+  class="btn-toolbar justify-content-between"
+  role="toolbar"
+  aria-label="Toolbar with button groups"
+>
+  <div class="btn-group" role="group" aria-label="First group">
+    <% queries.map((query)=>{ %>
 
+    <a
+      href="/campgrounds?q=<%= query.name %> "
+      type="button"
+      class="btn btn-outline-dark"
+      ><%= query.label %></a
+    >
+    <% }) %>
+  </div>
+  <div class="input-group">
+    <!-- <form action="/blogs" method="GET" class="form-inline">
+      <div class="form-group searchbar">
+        <input
+          type="text"
+          name="search"
+          placeholder="Search..."
+          class="search_input"
+        />
+        <button type="submit" class="search_icon btn-dark border-0">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+    </form> -->
+    <form actions="/campgrounds" method="GET" class="d-flex">
+      <input
+        class="form-control me-2"
+        type="text"
+        name="search"
+        placeholder="Search Campground"
+        aria-label="Search Campground"
+      />
+      <button class="btn btn-outline-dark" type="submit">Search</button>
+    </form>
+  </div>
+</div>
 <% for(let c of campgrounds) {%>
 <div class="card my-2">
   <div class="row">
