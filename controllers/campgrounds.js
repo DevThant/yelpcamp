@@ -9,7 +9,7 @@ const geocoder = mbxGeocoding({ accessToken: mbxToken });
 module.exports.index = async (req, res) => {
   // get queries from url
   const { q, search } = req.query;
-  // if there is a query, use checkQuery to sort the campgrounds
+  // if there is a query, use checkQuery to sort the campgrounds or search for a campground
   if (q) {
     const campgrounds = await checkQuery(q);
     res.render("campgrounds/index", { campgrounds, queries });
