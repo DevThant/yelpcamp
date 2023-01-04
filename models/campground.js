@@ -59,7 +59,6 @@ CampgroundSchema.virtual("properties.popUpMarkUp").get(function () {
     >
   </div>
 </div>
-
 `;
 });
 
